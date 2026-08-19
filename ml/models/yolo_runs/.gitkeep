@@ -1,0 +1,3 @@
+# YOLO detector weights are tracked with Git LFS.
+# Run: git lfs pull   to download after cloning.
+# Or retrain: python ml/scripts/train_yolo.py --epochs 100

@@ -1,0 +1,742 @@
+[
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (1).jpg",
+    "width": 2448,
+    "height": 3264,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 382.75,
+        "ymin": 1106.9,
+        "xmax": 1147.75,
+        "ymax": 1718.95,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (101).jpg",
+    "width": 1968,
+    "height": 4144,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 860.92,
+        "ymin": 1210.57,
+        "xmax": 1573.17,
+        "ymax": 1501.94,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (11).jpg",
+    "width": 1440,
+    "height": 2560,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 248.0,
+        "ymin": 992.0,
+        "xmax": 1308.0,
+        "ymax": 1604.0,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (16).jpg",
+    "width": 4000,
+    "height": 3000,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 1329.53,
+        "ymin": 1687.66,
+        "xmax": 2388.91,
+        "ymax": 1978.3,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (18).jpg",
+    "width": 3000,
+    "height": 4000,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 943.75,
+        "ymin": 1012.5,
+        "xmax": 1825.0,
+        "ymax": 1343.75,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (22).jpg",
+    "width": 3000,
+    "height": 4000,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 900.0,
+        "ymin": 1337.5,
+        "xmax": 1687.5,
+        "ymax": 1625.0,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (36).jpg",
+    "width": 3000,
+    "height": 4000,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 868.75,
+        "ymin": 1000.0,
+        "xmax": 2250.0,
+        "ymax": 1912.5,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (38).jpg",
+    "width": 3024,
+    "height": 4032,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 964.1,
+        "ymin": 1354.66,
+        "xmax": 1946.86,
+        "ymax": 1568.9,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (4).jpg",
+    "width": 1968,
+    "height": 4144,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 776.74,
+        "ymin": 2706.29,
+        "xmax": 1268.84,
+        "ymax": 2887.59,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (49).jpg",
+    "width": 3120,
+    "height": 4160,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 1118.05,
+        "ymin": 2015.05,
+        "xmax": 1930.55,
+        "ymax": 2340.05,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (5).jpg",
+    "width": 2448,
+    "height": 3264,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 321.55,
+        "ymin": 1004.95,
+        "xmax": 2157.55,
+        "ymax": 1877.05,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (53).jpg",
+    "width": 3120,
+    "height": 4160,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 1813.55,
+        "ymin": 3003.05,
+        "xmax": 2580.55,
+        "ymax": 3237.05,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (55).jpg",
+    "width": 3000,
+    "height": 4000,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 912.5,
+        "ymin": 1306.25,
+        "xmax": 2393.75,
+        "ymax": 2306.25,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (62).jpg",
+    "width": 2448,
+    "height": 3264,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 826.45,
+        "ymin": 1203.85,
+        "xmax": 1581.25,
+        "ymax": 1525.15,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (64).jpg",
+    "width": 2448,
+    "height": 3264,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 709.15,
+        "ymin": 1285.45,
+        "xmax": 1407.85,
+        "ymax": 1922.95,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (66).jpg",
+    "width": 3456,
+    "height": 4608,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 799.4,
+        "ymin": 1958.6,
+        "xmax": 2440.96,
+        "ymax": 3024.16,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (70).jpg",
+    "width": 3024,
+    "height": 4032,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 850.66,
+        "ymin": 1310.56,
+        "xmax": 2463.46,
+        "ymax": 2249.26,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (73).jpg",
+    "width": 2448,
+    "height": 3264,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 688.75,
+        "ymin": 1066.15,
+        "xmax": 1698.55,
+        "ymax": 1642.45,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (79).jpg",
+    "width": 3000,
+    "height": 4000,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 1246.25,
+        "ymin": 1452.5,
+        "xmax": 2083.7,
+        "ymax": 1721.25,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (80).jpg",
+    "width": 2448,
+    "height": 3264,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 535.75,
+        "ymin": 1117.15,
+        "xmax": 1530.25,
+        "ymax": 1652.65,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (84).jpg",
+    "width": 2448,
+    "height": 3264,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 326.65,
+        "ymin": 806.05,
+        "xmax": 2009.65,
+        "ymax": 1683.25,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (86).jpg",
+    "width": 4000,
+    "height": 3000,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 96.72,
+        "ymin": 1134.53,
+        "xmax": 2838.9,
+        "ymax": 3000.0,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (89).jpg",
+    "width": 2448,
+    "height": 3264,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 500.05,
+        "ymin": 1489.45,
+        "xmax": 2137.15,
+        "ymax": 2070.8,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (90).jpg",
+    "width": 2448,
+    "height": 3264,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 979.45,
+        "ymin": 734.65,
+        "xmax": 1627.15,
+        "ymax": 1091.65,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (95).jpg",
+    "width": 3000,
+    "height": 4000,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 868.75,
+        "ymin": 575.0,
+        "xmax": 2968.75,
+        "ymax": 1787.5,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (96).jpg",
+    "width": 1968,
+    "height": 3071,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 499.34,
+        "ymin": 1832.82,
+        "xmax": 969.58,
+        "ymax": 1967.18,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\Indian_Number_Plates\\Sample_Images\\Datacluster_number_plates (99).jpg",
+    "width": 2448,
+    "height": 3264,
+    "source": "voc_no_text",
+    "boxes": [
+      {
+        "xmin": 382.75,
+        "ymin": 1061.05,
+        "xmax": 2091.25,
+        "ymax": 1851.55,
+        "text": null
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\number_plate_images_ocr\\number_plate_images_ocr\\dc_auto_image_000021_bMXgvtud5K.jpg",
+    "width": 2448,
+    "height": 3264,
+    "source": "voc_with_text",
+    "boxes": [
+      {
+        "xmin": 998.08,
+        "ymin": 1787.13,
+        "xmax": 1064.25,
+        "ymax": 1834.32,
+        "text": "KL34A465"
+      },
+      {
+        "xmin": 742.9,
+        "ymin": 1699.15,
+        "xmax": 773.41,
+        "ymax": 1753.01,
+        "text": "KL34A465"
+      },
+      {
+        "xmin": 561.12,
+        "ymin": 1632.93,
+        "xmax": 614.16,
+        "ymax": 1655.21,
+        "text": "KL34F"
+      },
+      {
+        "xmin": 1755.62,
+        "ymin": 1682.02,
+        "xmax": 1876.67,
+        "ymax": 1726.27,
+        "text": "KL35F4337"
+      },
+      {
+        "xmin": 1944.28,
+        "ymin": 2289.08,
+        "xmax": 2356.6,
+        "ymax": 2507.0,
+        "text": "KL35H5834"
+      },
+      {
+        "xmin": 143.3,
+        "ymin": 1784.47,
+        "xmax": 219.27,
+        "ymax": 1832.83,
+        "text": "KL03S6894"
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\number_plate_images_ocr\\number_plate_images_ocr\\dc_auto_image_000024_fqvRhfiO6i.jpg",
+    "width": 3024,
+    "height": 4032,
+    "source": "voc_with_text",
+    "boxes": [
+      {
+        "xmin": 234.5,
+        "ymin": 1359.54,
+        "xmax": 506.53,
+        "ymax": 1487.8,
+        "text": "UP84AE9889"
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\number_plate_images_ocr\\number_plate_images_ocr\\dc_bus_image_000033_XUH0eV452t.jpg",
+    "width": 2880,
+    "height": 3840,
+    "source": "voc_with_text",
+    "boxes": [
+      {
+        "xmin": 1116.03,
+        "ymin": 1979.08,
+        "xmax": 1214.18,
+        "ymax": 2011.6,
+        "text": "GJ01DY6855"
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\number_plate_images_ocr\\number_plate_images_ocr\\dc_bus_image_000039_9NispLHmAo.jpg",
+    "width": 4160,
+    "height": 3120,
+    "source": "voc_with_text",
+    "boxes": [
+      {
+        "xmin": 2437.4,
+        "ymin": 2474.58,
+        "xmax": 2744.63,
+        "ymax": 2576.34,
+        "text": "KL498262"
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\number_plate_images_ocr\\number_plate_images_ocr\\dc_license_plates_0RBAQHKIXQMDFYZD.jpg",
+    "width": 2448,
+    "height": 3264,
+    "source": "voc_with_text",
+    "boxes": [
+      {
+        "xmin": 847.65,
+        "ymin": 771.5,
+        "xmax": 1525.69,
+        "ymax": 977.86,
+        "text": "WB42AX7446"
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\number_plate_images_ocr\\number_plate_images_ocr\\dc_license_plates_0RRPJCID3RRLSFTI.jpg",
+    "width": 2448,
+    "height": 3264,
+    "source": "voc_with_text",
+    "boxes": [
+      {
+        "xmin": 904.26,
+        "ymin": 1149.07,
+        "xmax": 1326.5,
+        "ymax": 1246.31,
+        "text": "MP07L7524"
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\number_plate_images_ocr\\number_plate_images_ocr\\dc_license_plates_2D9KWCA7PLD0NW31.jpg",
+    "width": 3000,
+    "height": 4000,
+    "source": "voc_with_text",
+    "boxes": [
+      {
+        "xmin": 604.23,
+        "ymin": 1360.35,
+        "xmax": 2697.34,
+        "ymax": 1934.74,
+        "text": "MP04PA0434"
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\number_plate_images_ocr\\number_plate_images_ocr\\dc_license_plates_2DZ4YT4ZJ9XJZSO0.jpg",
+    "width": 2448,
+    "height": 3264,
+    "source": "voc_with_text",
+    "boxes": [
+      {
+        "xmin": 1487.12,
+        "ymin": 1144.3,
+        "xmax": 1647.2,
+        "ymax": 1228.98,
+        "text": "RJ11GB1829"
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\number_plate_images_ocr\\number_plate_images_ocr\\dc_license_plates_3GKHBM5PWHYXHMTE.jpg",
+    "width": 2448,
+    "height": 3264,
+    "source": "voc_with_text",
+    "boxes": [
+      {
+        "xmin": 869.98,
+        "ymin": 1547.6,
+        "xmax": 1376.1,
+        "ymax": 1684.9,
+        "text": "KL41L7001"
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\number_plate_images_ocr\\number_plate_images_ocr\\dc_license_plates_3HE1J0YIRGRDENVO.jpg",
+    "width": 3120,
+    "height": 4160,
+    "source": "voc_with_text",
+    "boxes": [
+      {
+        "xmin": 1184.92,
+        "ymin": 1753.32,
+        "xmax": 2084.1,
+        "ymax": 2301.6,
+        "text": "TN58D5353"
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\number_plate_images_ocr\\number_plate_images_ocr\\dc_license_plates_7K9NEIDD2KK46L6F.jpg",
+    "width": 3024,
+    "height": 4032,
+    "source": "voc_with_text",
+    "boxes": [
+      {
+        "xmin": 1365.3,
+        "ymin": 1767.08,
+        "xmax": 1822.1,
+        "ymax": 2018.8,
+        "text": "KL07BX7197"
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\number_plate_images_ocr\\number_plate_images_ocr\\dc_license_plates_7L53OMODJOLUGUOE.jpg",
+    "width": 3008,
+    "height": 4016,
+    "source": "voc_with_text",
+    "boxes": [
+      {
+        "xmin": 422.65,
+        "ymin": 823.01,
+        "xmax": 2505.43,
+        "ymax": 1905.5,
+        "text": "UP84AE6664"
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\number_plate_images_ocr\\number_plate_images_ocr\\dc_license_plates_VTPRN3NAPF8MUGNF.jpg",
+    "width": 2448,
+    "height": 3264,
+    "source": "voc_with_text",
+    "boxes": [
+      {
+        "xmin": 1186.33,
+        "ymin": 1359.07,
+        "xmax": 1734.4,
+        "ymax": 1766.62,
+        "text": "KL10AG7249"
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\number_plate_images_ocr\\number_plate_images_ocr\\dc_license_plates_VYA8KOAVKLW6PJYK.jpg",
+    "width": 2448,
+    "height": 3264,
+    "source": "voc_with_text",
+    "boxes": [
+      {
+        "xmin": 938.59,
+        "ymin": 874.96,
+        "xmax": 1247.9,
+        "ymax": 1079.3,
+        "text": "TN58AP5280"
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\number_plate_images_ocr\\number_plate_images_ocr\\dc_license_plates_VZUYOAPZ8633ZQTN.jpg",
+    "width": 2448,
+    "height": 3264,
+    "source": "voc_with_text",
+    "boxes": [
+      {
+        "xmin": 1102.5,
+        "ymin": 1558.6,
+        "xmax": 1464.8,
+        "ymax": 1665.6,
+        "text": "DL3CD1210"
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\number_plate_images_ocr\\number_plate_images_ocr\\dc_license_plates_W1W3000C6IAY3F1X.jpg",
+    "width": 2448,
+    "height": 3264,
+    "source": "voc_with_text",
+    "boxes": [
+      {
+        "xmin": 508.11,
+        "ymin": 989.6,
+        "xmax": 1776.1,
+        "ymax": 1342.6,
+        "text": "RJ11GB8850"
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\number_plate_images_ocr\\number_plate_images_ocr\\dc_tempo_van__image_000489_73h4cMU8Z1.jpg",
+    "width": 3000,
+    "height": 4000,
+    "source": "voc_with_text",
+    "boxes": [
+      {
+        "xmin": 1099.21,
+        "ymin": 2402.19,
+        "xmax": 1499.9,
+        "ymax": 2584.8,
+        "text": "MP13GA9462"
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\number_plate_images_ocr\\number_plate_images_ocr\\dc_tempo_van__image_000490_CF9bwJsyoX.jpg",
+    "width": 1920,
+    "height": 4160,
+    "source": "voc_with_text",
+    "boxes": [
+      {
+        "xmin": 1585.0,
+        "ymin": 2035.96,
+        "xmax": 1842.81,
+        "ymax": 2110.7,
+        "text": "KA09C2763"
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\number_plate_images_ocr\\number_plate_images_ocr\\dc_truck_image_001561_IEhCyPTs.jpg",
+    "width": 3120,
+    "height": 4160,
+    "source": "voc_with_text",
+    "boxes": [
+      {
+        "xmin": 1562.75,
+        "ymin": 2045.93,
+        "xmax": 1902.78,
+        "ymax": 2231.91,
+        "text": "MH18AA1002"
+      }
+    ]
+  },
+  {
+    "image_path": "data\\raw\\number_plate_images_ocr\\number_plate_images_ocr\\dc_truck_image_001564_RZeQ1TZR.jpg",
+    "width": 4000,
+    "height": 3000,
+    "source": "voc_with_text",
+    "boxes": [
+      {
+        "xmin": 2094.1,
+        "ymin": 1823.53,
+        "xmax": 2477.01,
+        "ymax": 1962.8,
+        "text": "KA01AJ7533"
+      }
+    ]
+  }
+]

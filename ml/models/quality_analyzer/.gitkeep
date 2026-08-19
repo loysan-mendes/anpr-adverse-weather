@@ -1,0 +1,3 @@
+# Trained model weights are tracked with Git LFS.
+# Run: git lfs pull   to download them after cloning.
+# Or retrain from scratch using the scripts in ml/scripts/.

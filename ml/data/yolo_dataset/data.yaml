@@ -1,0 +1,5 @@
+path: C:\Users\LOQ\Desktop\anpr-adverse-weather\ml\data\yolo_dataset
+train: images/train
+val: images/val
+nc: 1
+names: ['number_plate']

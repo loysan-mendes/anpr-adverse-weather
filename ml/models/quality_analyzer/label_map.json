@@ -1,0 +1,15 @@
+{
+  "conditions": [
+    "clear",
+    "haze",
+    "rain",
+    "blur",
+    "lowlight"
+  ],
+  "severities": [
+    "none",
+    "mild",
+    "moderate",
+    "severe"
+  ]
+}

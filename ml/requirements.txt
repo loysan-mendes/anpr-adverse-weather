@@ -1,0 +1,39 @@
+# --- Phase 1: Data acquisition + EDA ---
+kagglehub[pandas-datasets]==0.3.4
+pandas==2.2.2
+numpy==1.26.4
+opencv-python==4.10.0.84
+matplotlib==3.9.0
+seaborn==0.13.2
+Pillow==10.4.0
+tqdm==4.66.4
+albumentations==1.4.10
+
+# --- Phase 3: Quality Analyzer ---
+# NOT pinned to an exact version on purpose: this machine has a very recent
+# GPU driver (CUDA 13.2), and pinning torch==2.3.1 previously caused pip to
+# silently reinstall a CPU-only build on top of a correctly-configured CUDA
+# install. Install torch/torchvision separately BEFORE this file (see README)
+# rather than letting this line manage it.
+# torch
+# torchvision
+scikit-learn==1.5.1
+
+# --- Phase 5: YOLOv11 Detection ---
+ultralytics==8.3.0
+
+# --- Phase 6: Real-ESRGAN Super-Resolution (inference only, pretrained weights) ---
+basicsr==1.4.2
+realesrgan==0.3.0
+
+# --- Phase 7: PaddleOCR ---
+# paddlepaddle is installed SEPARATELY, before this file (CPU build, given
+# repeated Windows GPU DLL issues -- see README). paddleocr 3.x is required:
+# our earlier 2.9.1 pin uses PaddleOCR's legacy inference engine, which
+# predates and is incompatible with PaddlePaddle 3.x's internal rewrite.
+paddleocr==3.7.0
+# Paddle's native CPU execution path hit an unresolved internal bug
+# (oneDNN/PIR instruction conversion) on both PP-OCRv5 and PP-OCRv6 models
+# in this environment. onnxruntime is an alternative inference backend
+# PaddleOCR 3.x can delegate to, sidestepping that broken code path.
+onnxruntime==1.19.2
