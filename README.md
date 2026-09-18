@@ -57,18 +57,24 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
-### 2. Download dataset & generate augmented data
+### 2. Obtain Model Weights
 
+#### Option A: Quick Start (Download Pre-trained Weights)
+To run inference immediately without retraining, download the trained model weights from the [GitHub Release](https://github.com/loysan-mendes/anpr-adverse-weather/releases):
 ```powershell
 # From ml/ directory
-python scripts/download_dataset.py          # Phase 1: download raw dataset
-python scripts/weather_augment.py           # Phase 2: generate haze/rain/blur variants
-python scripts/build_manifest.py            # Phase 2: build augmented_manifest.json
+python scripts/download_weights.py
 ```
+This automatically fetches and places all model checkpoints into `ml/models/`.
 
-### 3. Train models (or download pre-trained weights)
-
+#### Option B: Train Models from Scratch
+If you prefer to train your own models:
 ```powershell
+# Phase 1 & 2: Dataset download & weather augmentations
+python scripts/download_dataset.py
+python scripts/weather_augment.py
+python scripts/build_manifest.py
+
 # Phase 3: Quality Analyzer
 python scripts/train_quality_analyzer.py --epochs 15
 
