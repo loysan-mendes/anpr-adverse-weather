@@ -15,11 +15,11 @@ Two things this fixes, both visible in Phase 7's evaluation:
    nonsense matches that happen to fit a template by coincidence.
 
 2. Common character misreads: OCR confuses visually similar
-   letters/digits (O/0, I/1, S/5, B/8, G/6, Z/2). Fix: when a region
-   matches a template's length but has a class mismatch at one position,
-   try that character's known confusion-pair substitute. Fewer required
-   substitutions = higher score, so a clean exact fit always beats a
-   heavily-coerced one.
+   letters/digits (O/0, I/1, S/5, B/8, G/6, Z/2, D/0, T/7). Fix: when
+   a region matches a template's length but has a class mismatch at one
+   position, try that character's known confusion-pair substitute. Fewer
+   required substitutions = higher score, so a clean exact fit always
+   beats a heavily-coerced one.
 
 This is a plausibility scorer to pick the best candidate among several
 noisy OCR readings -- NOT a legal registry lookup (no real state-code
@@ -37,7 +37,17 @@ import re
 
 # letter -> digit, for characters that look alike (used when a template
 # position expects a digit but OCR read a similar-looking letter)
-L2D = {"O": "0", "I": "1", "Z": "2", "S": "5", "B": "8", "G": "6", "Q": "0"}
+L2D = {
+    "O": "0",  # O and 0 are the classic OCR confusion
+    "I": "1",  # I / 1 in most plate fonts
+    "Z": "2",  # Z / 2 in sans-serif fonts
+    "S": "5",  # S / 5
+    "B": "8",  # B / 8
+    "G": "6",  # G / 6
+    "Q": "0",  # Q / 0 (tail of Q)
+    "D": "0",  # 5c: D can look like 0 in worn/faded plates
+    "T": "7",  # 5c: T misread as 7 in narrow plate fonts
+}
 # digit -> letter, the reverse direction
 D2L = {v: k for k, v in L2D.items()}
 

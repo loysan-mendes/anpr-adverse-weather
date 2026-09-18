@@ -35,8 +35,9 @@ ml/models/yolo_runs/plate_detector/weights/last.pt
 ml/models/yolo_runs/plate_detector2/
 
 # Pretrained base weights (downloaded automatically on first run)
-ml/yolo11n.pt
-ml/models/realesrgan/weights/RealESRGAN_x4plus.pth
+*.pt
+*.pth
+*.onnx
 
 # =============================================================================
 # Raw dataset (large, downloaded by download_dataset.py -- not committed)

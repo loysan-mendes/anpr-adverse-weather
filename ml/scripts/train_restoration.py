@@ -11,9 +11,16 @@ Run once per condition:
     python ml/scripts/train_restoration.py --condition rain
     python ml/scripts/train_restoration.py --condition blur
 
-(lowlight has no dedicated restoration branch in the architecture --
- the Quality Analyzer still flags it, but only haze/rain/blur route
- through a restoration model before detection.)
+(lowlight has no dedicated restoration branch in the UNet training --
+ the Quality Analyzer flags it and decision_engine.py handles it with
+ a fast CLAHE enhancer instead of a UNet. 3d change.)
+
+3a: IMG_SIZE raised from 256 -> 512 to close the mismatch between training
+    resolution and inference reality (images can be 1280px wide).
+    Requires >= 8 GB VRAM at batch_size=8; drop to batch_size=4 on smaller GPUs.
+
+3b: RestorationLoss now blends L1 + SSIM + Sobel-gradient. SSIM correlates
+    better with perceived sharpness and contrast than per-pixel L1 alone.
 """
 
 import argparse
@@ -35,7 +42,7 @@ from unet_model import UNet
 ML_DIR = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ML_DIR / "data" / "processed" / "augmented_manifest.json"
 MODEL_ROOT = ML_DIR / "models" / "restoration"
-IMG_SIZE = 256
+IMG_SIZE = 512  # 3a: was 256; raised to reduce the train/inference resolution mismatch
 
 SEED = 42
 random.seed(SEED)
@@ -138,16 +145,35 @@ class SobelGradLoss(nn.Module):
 
 
 class RestorationLoss(nn.Module):
-    """L1 pixel loss + weighted Sobel-gradient sharpness loss."""
+    """3b: L1 pixel loss + SSIM perceptual loss + weighted Sobel-gradient sharpness loss.
 
-    def __init__(self, edge_weight=1.0):
+    SSIM (Structural Similarity) measures luminance, contrast, and structure
+    simultaneously -- it correlates better with how humans perceive sharpness
+    and contrast restoration than per-pixel L1 alone. Blended at 0.3 weight
+    so it guides without dominating the pixel-accurate L1 signal.
+
+    Falls back to L1 + Sobel only if torchmetrics is unavailable.
+    """
+
+    def __init__(self, edge_weight=1.0, ssim_weight=0.3):
         super().__init__()
         self.edge_weight = edge_weight
+        self.ssim_weight = ssim_weight
         self.l1 = nn.L1Loss()
         self.grad = SobelGradLoss()
+        # Lazy import: torchmetrics is optional; fall back gracefully.
+        try:
+            from torchmetrics.functional import structural_similarity_index_measure as _ssim
+            self._ssim_fn = _ssim
+        except ImportError:
+            self._ssim_fn = None
 
     def forward(self, pred, target):
         loss = self.l1(pred, target)
+        if self.ssim_weight > 0 and self._ssim_fn is not None:
+            # 3b: SSIM loss: 1 - SSIM so minimising it maximises similarity.
+            ssim_loss = 1.0 - self._ssim_fn(pred, target, data_range=1.0)
+            loss = loss + self.ssim_weight * ssim_loss
         if self.edge_weight > 0:
             loss = loss + self.edge_weight * self.grad(pred, target)
         return loss
@@ -215,7 +241,8 @@ def main():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
-    print(f"Loss: L1 + {args.edge_weight} x Sobel-gradient (sharpness) loss")
+    print(f"Training resolution: {IMG_SIZE}x{IMG_SIZE}")
+    print(f"Loss: L1 + 0.3*SSIM + {args.edge_weight}*Sobel-gradient")
 
     train_pairs, val_pairs = build_pairs(Path(args.manifest), args.condition, args.val_frac)
     train_ds = PairedDataset(train_pairs, augment=True)

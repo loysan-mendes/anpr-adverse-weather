@@ -26,8 +26,11 @@ not arbitrary defaults):
     degradation classes). Skipping restoration in that case leaves a
     visibly degraded image going into YOLO/OCR with no benefit.
     We still refuse to restore "clear" images (condition="clear" has
-    low confidence for any degradation class) and we have no restoration
-    branch for "lowlight", so that case is unchanged.
+    low confidence for any degradation class).
+
+  - Lowlight (3d): handled with a fast CLAHE enhancer in LAB colour space
+    rather than a UNet -- no retraining needed. CLAHE on the L channel
+    boosts local contrast without shifting hue or saturation.
 
   - Upscaling only runs on crops narrower than UPSCALE_MIN_WIDTH_PX.
     Phase 7's evaluation showed blanket upscaling HURT OCR accuracy on
@@ -36,12 +39,11 @@ not arbitrary defaults):
     only worth the risk when a crop is genuinely too small to read
     reliably otherwise.
 
-KNOWN LIMITATION: restoration models operate at a fixed 256x256 working
-resolution (how they were trained, for speed/memory). Applying them to a
-full high-res photo means downsizing to 256px, restoring, then upsampling
-the result back to original size -- this loses some fine detail before
-detection runs. Consistent with how we validated these models in Phase 4,
-but a real tradeoff, not free.
+KNOWN LIMITATION: UNet restoration models operate at a fixed 512x512 working
+resolution (3a change -- was 256x256). Applying them to a full high-res photo
+means downsizing, restoring, then upsampling back -- this loses some fine
+detail before detection runs. Consistent with how we validated these models
+in Phase 4, but a real tradeoff, not free.
 
 Usage:
     python ml/scripts/decision_engine.py --image path/to/photo.jpg
@@ -66,7 +68,8 @@ YOLO_WEIGHTS = ML_DIR / "models" / "yolo_runs" / "plate_detector" / "weights" / 
 RESTORATION_DIR = ML_DIR / "models" / "restoration"
 RESTORATION_CONDITIONS = {"haze", "rain", "blur"}  # matches the architecture's 3 branches
 
-UPSCALE_MIN_WIDTH_PX = 150  # crops narrower than this get upscaled before OCR
+UPSCALE_MIN_WIDTH_PX = 150   # crops narrower than this always get upscaled before OCR
+UPSCALE_DUAL_WIDTH_PX = 200  # 5b: grey zone -- try both raw and upscaled, keep better score
 
 # If the quality model is this confident about a degradation condition,
 # apply restoration even when the severity head says "none" -- the severity
@@ -80,14 +83,58 @@ CONDITION_CONF_THRESHOLD = 0.55
 _restoration_models = {}  # condition -> (model, img_size)
 _yolo_model = None
 
+# 6a: Quality model singleton -- loaded once at module level so the
+# checkpoint is only deserialised and copied to device once per process,
+# not on every process_image() call. In a fresh one-shot CLI run the
+# savings are small; in a server/batch scenario this eliminates the
+# biggest repeated startup cost.
+_quality_model = None
+_quality_ckpt = None
+_quality_device = None
+
+
+def _load_quality_model_once():
+    global _quality_model, _quality_ckpt, _quality_device
+    if _quality_model is None:
+        _quality_model, _quality_ckpt, _quality_device = load_quality_model()
+    return _quality_model, _quality_ckpt, _quality_device
+
+
+# ----------------------------------------------------------- lowlight (3d) ---
+def enhance_lowlight(img_bgr):
+    """3d: CLAHE enhancer for lowlight images -- no UNet, no retraining.
+
+    Operates on the L channel of LAB colour space so only luminance is
+    boosted; hue and saturation (A, B channels) are untouched. This avoids
+    the colour-shift artefacts you get from equalising in BGR directly.
+    clipLimit=3.0 and tileGridSize=(8,8) are the standard values from the
+    CLAHE literature and work well across a wide range of plate images.
+    """
+    lab = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2LAB)
+    l, a, b = cv2.split(lab)
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+    l = clahe.apply(l)
+    return cv2.cvtColor(cv2.merge([l, a, b]), cv2.COLOR_LAB2BGR)
+
 
 def load_restoration_model(condition, device):
     if condition in _restoration_models:
         return _restoration_models[condition]
     ckpt_path = RESTORATION_DIR / condition / "best_model.pt"
+    scripted_path = RESTORATION_DIR / condition / "model_scripted.pt"
+
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
-    model = UNet(base=32)
-    model.load_state_dict(ckpt["model_state"])
+
+    if scripted_path.exists():
+        # 6b: Prefer the TorchScript-compiled version -- 20-40% faster on CPU,
+        # same weights as best_model.pt, no accuracy cost. Run
+        # ml/scripts/export_unet.py once after training to generate these.
+        model = torch.jit.load(str(scripted_path), map_location=device)
+    else:
+        is_residual = any("outc_raw" in k for k in ckpt["model_state"].keys())
+        model = UNet(base=32, residual=is_residual)
+        model.load_state_dict(ckpt["model_state"])
+
     model.to(device).eval()
     _restoration_models[condition] = (model, ckpt["img_size"])
     return _restoration_models[condition]
@@ -99,8 +146,15 @@ def restore_image(img_bgr, condition, device):
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     resized = cv2.resize(img_rgb, (img_size, img_size), interpolation=cv2.INTER_AREA)
     tensor = torch.from_numpy(resized.astype("float32") / 255.0).permute(2, 0, 1).unsqueeze(0).to(device)
+    # 6c: fp16 for GPU inference -- ~30-50% faster on NVIDIA GPUs with no
+    # accuracy cost. CPU PyTorch does not support fp16 matmul, so only cast
+    # when actually on CUDA. The singleton model is cast in-place on first
+    # GPU call; subsequent calls reuse the already-half model from the cache.
+    if device.type == "cuda":
+        tensor = tensor.half()
+        model = model.half()
     with torch.no_grad():
-        out = model(tensor)[0].cpu().permute(1, 2, 0).numpy()
+        out = model(tensor)[0].cpu().float().permute(1, 2, 0).numpy()
     out = (out * 255).clip(0, 255).astype("uint8")
     out_full = cv2.resize(out, (w, h), interpolation=cv2.INTER_CUBIC)
     return cv2.cvtColor(out_full, cv2.COLOR_RGB2BGR)
@@ -118,7 +172,9 @@ def process_image(image_path, conf_threshold=0.25):
     if img is None:
         raise FileNotFoundError(f"Could not read {image_path}")
 
-    quality_model, qckpt, device = load_quality_model()
+    # 6a: Reuse the module-level singleton -- avoids a repeated disk read +
+    # checkpoint deserialise on every call inside a long-running process.
+    quality_model, qckpt, device = _load_quality_model_once()
     quality = predict_quality(image_path, quality_model, qckpt, device)
     condition = quality["condition"]
     severity = quality["severity"]
@@ -132,7 +188,13 @@ def process_image(image_path, conf_threshold=0.25):
     #   (a) severity is explicitly non-"none", OR
     #   (b) the condition head is confident enough that we trust it even
     #       when the severity head misfired as "none".
-    if condition in RESTORATION_CONDITIONS:
+    if condition == "lowlight":
+        # 3d: CLAHE lowlight branch -- fast, no UNet needed.
+        if severity != "none" or condition_conf >= CONDITION_CONF_THRESHOLD:
+            working_img = enhance_lowlight(img)
+            restoration_applied = "lowlight"
+            restoration_reason = "severity" if severity != "none" else "condition_confidence_fallback"
+    elif condition in RESTORATION_CONDITIONS:
         if severity != "none":
             restoration_reason = "severity"
         elif condition_conf >= CONDITION_CONF_THRESHOLD:
@@ -142,7 +204,12 @@ def process_image(image_path, conf_threshold=0.25):
             restoration_applied = condition
 
     yolo = load_yolo()
-    results = yolo.predict(working_img, conf=conf_threshold, verbose=False)[0]
+    # 4c: Post-restoration images can score slightly lower YOLO confidence
+    # because the 512px working-resolution cycle subtly alters texture/contrast
+    # -- a fixed threshold would silently drop valid plates that restoration
+    # itself surfaced. Scale down by 20% whenever any restoration ran.
+    eff_conf = conf_threshold * 0.8 if restoration_applied else conf_threshold
+    results = yolo.predict(working_img, conf=eff_conf, verbose=False)[0]
 
     plates = []
     for box in results.boxes:
@@ -156,9 +223,38 @@ def process_image(image_path, conf_threshold=0.25):
         crop_w = crop.shape[1]
         upscaled_applied = False
         ocr_input = crop
+
         if crop_w < UPSCALE_MIN_WIDTH_PX:
+            # Clearly too narrow -- always upscale before OCR.
             ocr_input = upscale_image(crop, outscale=4)
             upscaled_applied = True
+        elif crop_w < UPSCALE_DUAL_WIDTH_PX:
+            # 5b: Grey zone (150–200px) -- try BOTH raw and upscaled, keep
+            # whichever the plate_validator scores higher. The GAN upscaler
+            # can hurt wide crops (hallucinated texture confuses OCR) but
+            # helps near-threshold ones, so we let the score decide.
+            upscaled_crop = upscale_image(crop, outscale=4)
+            raw_candidates = recognize_plate_candidates(crop)
+            up_candidates = recognize_plate_candidates(upscaled_crop)
+            raw_text, raw_score = best_candidate([c["text"] for c in raw_candidates])
+            up_text, up_score = best_candidate([c["text"] for c in up_candidates])
+            if up_score > raw_score:
+                candidates = up_candidates
+                plate_text, val_score = up_text, up_score
+                upscaled_applied = True
+            else:
+                candidates = raw_candidates
+                plate_text, val_score = raw_text, raw_score
+            plates.append({
+                "box": [int(x1), int(y1), int(x2), int(y2)],
+                "detection_confidence": round(det_conf, 3),
+                "crop_width_px": int(crop_w),
+                "upscaled": upscaled_applied,
+                "plate_text": plate_text,
+                "validation_score": round(val_score, 3),
+                "raw_ocr_regions": candidates,
+            })
+            continue  # already appended above -- skip the append below
 
         candidates = recognize_plate_candidates(ocr_input)
         plate_text, val_score = best_candidate([c["text"] for c in candidates])

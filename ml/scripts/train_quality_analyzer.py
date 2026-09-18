@@ -138,7 +138,7 @@ def class_weights(entries, key, classes):
 
 # ----------------------------------------------------------------- model ---
 class QualityNet(nn.Module):
-    def __init__(self, num_conditions, num_severities, pretrained=True):
+    def __init__(self, num_conditions, num_severities, pretrained=True, use_bn=False):
         super().__init__()
         weights = EfficientNet_B0_Weights.IMAGENET1K_V1 if pretrained else None
         backbone = efficientnet_b0(weights=weights)
@@ -146,6 +146,12 @@ class QualityNet(nn.Module):
         self.avgpool = backbone.avgpool
         in_features = backbone.classifier[1].in_features  # 1280
         self.dropout = nn.Dropout(0.3)
+        self.use_bn = use_bn
+        if use_bn:
+            # 2c: Independent BN layers per head so condition and severity
+            # features can adapt their own scale/shift independently.
+            self.cond_bn = nn.BatchNorm1d(in_features)
+            self.sev_bn = nn.BatchNorm1d(in_features)
         self.condition_head = nn.Linear(in_features, num_conditions)
         self.severity_head = nn.Linear(in_features, num_severities)
 
@@ -154,10 +160,24 @@ class QualityNet(nn.Module):
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.dropout(x)
+        if self.use_bn:
+            return self.condition_head(self.cond_bn(x)), self.severity_head(self.sev_bn(x))
         return self.condition_head(x), self.severity_head(x)
 
 
 # --------------------------------------------------------------- training ---
+def ordinal_loss(logits, targets, num_classes=4):
+    """2b: Ordinal severity loss -- penalises distance from true class, not
+    just wrong/right. CrossEntropy treats none/mild/moderate/severe as
+    unrelated categories; this MSE-on-expected-rank correctly penalises
+    predicting 'none' on a 'severe' image much more than predicting 'mild'."""
+    import torch.nn.functional as F
+    probs = torch.softmax(logits, dim=1)
+    ranks = torch.arange(num_classes, device=probs.device, dtype=torch.float32)
+    expected_rank = (probs * ranks).sum(dim=1)  # scalar per sample
+    return F.mse_loss(expected_rank, targets.float())
+
+
 def run_epoch(model, loader, cond_criterion, sev_criterion, optimizer, device, train=True):
     model.train() if train else model.eval()
     total_loss, cond_correct, sev_correct, n = 0.0, 0, 0, 0
@@ -173,7 +193,13 @@ def run_epoch(model, loader, cond_criterion, sev_criterion, optimizer, device, t
                 optimizer.zero_grad()
 
             cond_logits, sev_logits = model(imgs)
-            loss = cond_criterion(cond_logits, cond_labels) + 0.5 * sev_criterion(sev_logits, sev_labels)
+            # 2a: Equal loss weight (was 0.5) so severity head receives
+            # the same gradient signal as the condition head.
+            # 2b: Ordinal loss blended with weighted CrossEntropy so the
+            # model learns both ranking order and class boundaries.
+            sev_ce   = sev_criterion(sev_logits, sev_labels)
+            sev_ord  = ordinal_loss(sev_logits, sev_labels, num_classes=len(SEVERITIES))
+            loss = cond_criterion(cond_logits, cond_labels) + 1.0 * (sev_ce + sev_ord)
 
             if train:
                 loss.backward()

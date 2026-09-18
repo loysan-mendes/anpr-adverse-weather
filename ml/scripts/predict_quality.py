@@ -27,7 +27,8 @@ def load_model(checkpoint_path=CHECKPOINT_PATH, device=None):
     # weights_only=True would reject).
     ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
 
-    model = QualityNet(len(ckpt["conditions"]), len(ckpt["severities"]))
+    has_bn = any("cond_bn" in k for k in ckpt["model_state"].keys())
+    model = QualityNet(len(ckpt["conditions"]), len(ckpt["severities"]), use_bn=has_bn)
     model.load_state_dict(ckpt["model_state"])
     model.to(device)
     model.eval()

@@ -4,6 +4,12 @@ Phase 4: Shared U-Net architecture used by Dehaze / Derain / Deblur.
 A compact 3-level U-Net (not the full 4-5 level version) -- kept small on
 purpose since we're training on a few hundred image pairs, not millions;
 a bigger network would just overfit faster without more data to justify it.
+
+3c change: Residual learning -- the network predicts the *correction* to add
+back to the degraded input, not the full clean image. This is the same design
+used in DnCNN and FFDNet: the residual is nearly all-zero for clean regions,
+so the optimizer starts from a much better point and converges to sharper
+outputs faster than learning the full pixel grid from scratch.
 """
 
 import torch
@@ -50,8 +56,9 @@ class Up(nn.Module):
 class UNet(nn.Module):
     """3-down / 3-up U-Net. Input/output: 3-channel image in [0, 1] range."""
 
-    def __init__(self, in_ch=3, out_ch=3, base=32):
+    def __init__(self, in_ch=3, out_ch=3, base=32, residual=False):
         super().__init__()
+        self.residual = residual
         self.inc = DoubleConv(in_ch, base)
         self.down1 = Down(base, base * 2)
         self.down2 = Down(base * 2, base * 4)
@@ -59,9 +66,13 @@ class UNet(nn.Module):
         self.up1 = Up(base * 8, base * 4)
         self.up2 = Up(base * 4, base * 2)
         self.up3 = Up(base * 2, base)
-        self.outc = nn.Conv2d(base, out_ch, kernel_size=1)
+        if residual:
+            self.outc_raw = nn.Conv2d(base, out_ch, kernel_size=1)
+        else:
+            self.outc = nn.Conv2d(base, out_ch, kernel_size=1)
 
     def forward(self, x):
+        inp = x
         x1 = self.inc(x)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
@@ -69,5 +80,8 @@ class UNet(nn.Module):
         x = self.up1(x4, x3)
         x = self.up2(x, x2)
         x = self.up3(x, x1)
+        if self.residual:
+            residual = self.outc_raw(x)
+            return torch.clamp(inp + residual, 0.0, 1.0)
         out = self.outc(x)
-        return torch.sigmoid(out)  # keep output in [0, 1]
+        return torch.sigmoid(out)

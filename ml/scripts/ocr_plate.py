@@ -20,8 +20,40 @@ import argparse
 import re
 
 import cv2
+import numpy as np
 
 _ocr = None  # lazy-loaded singleton
+
+
+# ----------------------------------------------------------- preprocessing ---
+def preprocess_crop(img_bgr):
+    """5a: Pre-process a plate crop before handing it to PaddleOCR.
+
+    Two operations applied in sequence:
+      1. Adaptive Gaussian thresholding -- binarises the image using a locally
+         computed threshold so uneven illumination (shadow, glare, faded paint)
+         doesn't knock out entire regions of the plate.
+      2. Sharpening kernel -- amplifies high-frequency edges so stroke
+         boundaries between characters are crisper going into the OCR model.
+
+    Returns a 3-channel BGR image so PaddleOCR receives the same data type
+    it expects regardless of whether preprocessing ran.
+    """
+    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+    # blockSize=11 and C=2 are conservative defaults that work across a wide
+    # range of plate fonts and sizes without over-binarising thin strokes.
+    thresh = cv2.adaptiveThreshold(
+        gray, 255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY,
+        blockSize=11, C=2,
+    )
+    kernel = np.array([[0, -1, 0],
+                        [-1,  5, -1],
+                        [0, -1, 0]], dtype=np.float32)
+    sharp = cv2.filter2D(thresh, -1, kernel)
+    return cv2.cvtColor(sharp, cv2.COLOR_GRAY2BGR)
+
 
 
 def load_ocr():
@@ -69,9 +101,12 @@ def recognize_plate_candidates(img_bgr):
     uppercase alphanumeric), sorted left-to-right by box x-position, plus
     their confidences. This preserves natural OCR token boundaries -- use
     this (not recognize_plate) when feeding into plate_validator, since
-    validation needs real region boundaries, not a pre-joined blob."""
+    validation needs real region boundaries, not a pre-joined blob.
+
+    5a: img_bgr is pre-processed (adaptive threshold + sharpen) before OCR.
+    """
     ocr = load_ocr()
-    result = ocr.predict(img_bgr)
+    result = ocr.predict(preprocess_crop(img_bgr))
 
     items = []  # (x_center, cleaned_text, confidence)
     for res in result:
@@ -100,8 +135,11 @@ def recognize_plate(img_bgr):
     """Returns (predicted_text, avg_confidence): all detected regions
     naively joined left-to-right. This is the Phase 7 baseline behavior --
     kept as-is for comparison against plate_validator's smarter region
-    scoring (see evaluate_ocr.py)."""
-    candidates = recognize_plate_candidates(img_bgr)
+    scoring (see evaluate_ocr.py).
+
+    5a: img_bgr is pre-processed before OCR (same path as recognize_plate_candidates).
+    """
+    candidates = recognize_plate_candidates(img_bgr)  # preprocessing applied inside
     if not candidates:
         return "", 0.0
     full_text = "".join(c["text"] for c in candidates)

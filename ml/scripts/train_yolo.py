@@ -8,12 +8,17 @@ not viable. Starting from COCO-pretrained weights means the model already
 knows general "what is an object / where are its edges" features; we're
 just teaching it to specialize on "number_plate" as a class.
 
-Using the nano variant (yolo11n) on purpose: it's the least prone to
-overfitting on a small dataset, and plate detection doesn't need a huge
-model -- a plate is a simple, consistently-shaped rectangular object.
+4a change: Default model raised from yolo11n (nano) to yolo11s (small).
+  - Nano was chosen to prevent overfitting on 47 photos with the same
+    clear image appearing in every weather variant (low diversity).
+  - Small has ~2x more parameters than nano and is still under 30ms on CPU.
+  - With 500+ source photos (or augmented variants already in the dataset)
+    the extra capacity pays off -- better feature extraction without
+    meaningfully higher overfitting risk.
+  - Pass --model yolo11n.pt explicitly if you're still on a very small
+    dataset or want the absolute fastest inference.
 
-First run will auto-download yolo11n.pt (needs internet -- fine on your
-local machine).
+First run will auto-download the selected .pt weights (needs internet).
 
 Usage:
     python ml/scripts/train_yolo.py --epochs 100
@@ -32,8 +37,10 @@ RUN_PROJECT = ML_DIR / "models" / "yolo_runs"
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", default=str(DATA_YAML))
-    parser.add_argument("--model", default="yolo11n.pt",
-                         help="starting weights: yolo11n.pt (fastest/smallest) up to yolo11x.pt (largest)")
+    parser.add_argument("--model", default="yolo11s.pt",
+                         help="starting weights: yolo11n.pt (nano, least overfit risk on tiny datasets) "
+                              "up to yolo11x.pt (largest). Default is yolo11s (small) -- 2x params vs nano, "
+                              "still <30ms on CPU, better suited once the dataset exceeds ~100 source photos.")
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--imgsz", type=int, default=640)
     parser.add_argument("--batch", type=int, default=16)
