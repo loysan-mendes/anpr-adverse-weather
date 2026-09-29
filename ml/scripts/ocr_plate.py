@@ -21,6 +21,7 @@ import re
 
 import cv2
 import numpy as np
+from plate_validator import order_regions
 
 _ocr = None  # lazy-loaded singleton
 
@@ -83,9 +84,14 @@ def load_ocr():
         lang="en",
         device="cpu",
         ocr_version="PP-OCRv5",
+        text_det_limit_side_len=640,
+        text_det_limit_type="max",
     )
     try:
-        _ocr = PaddleOCR(engine="onnxruntime", **common_kwargs)
+        _ocr = PaddleOCR(engine="onnxruntime", engine_config={
+            "intra_op_num_threads": 4, "inter_op_num_threads": 1,
+            "log_severity_level": 3,
+        }, **common_kwargs)
     except TypeError:
         _ocr = PaddleOCR(**common_kwargs)
     return _ocr
@@ -97,18 +103,11 @@ def clean_text(s: str) -> str:
 
 
 def recognize_plate_candidates(img_bgr):
-    """Returns a list of individually detected text regions (each cleaned,
-    uppercase alphanumeric), sorted left-to-right by box x-position, plus
-    their confidences. This preserves natural OCR token boundaries -- use
-    this (not recognize_plate) when feeding into plate_validator, since
-    validation needs real region boundaries, not a pre-joined blob.
-
-    5a: img_bgr is pre-processed (adaptive threshold + sharpen) before OCR.
-    """
+    """Return original-pixel OCR regions with confidence and boxes in row reading order."""
     ocr = load_ocr()
-    result = ocr.predict(preprocess_crop(img_bgr))
+    result = ocr.predict(img_bgr)  # Preserve original pixel evidence.
 
-    items = []  # (x_center, cleaned_text, confidence)
+    items = []  # text, confidence and full bounding box
     for res in result:
         rec_texts = res["rec_texts"]
         rec_scores = res["rec_scores"]
@@ -122,13 +121,12 @@ def recognize_plate_candidates(img_bgr):
                 continue
             conf = float(rec_scores[i])
             if rec_boxes is not None and len(rec_boxes) > i:
-                x_center = float(rec_boxes[i][0]) + float(rec_boxes[i][2])
+                box = [float(v) for v in rec_boxes[i]]
             else:
-                x_center = i
-            items.append((x_center, cleaned, conf))
+                box = None
+            items.append({"text": cleaned, "conf": conf, "box": box})
 
-    items.sort(key=lambda t: t[0])
-    return [{"text": t[1], "conf": t[2]} for t in items]
+    return order_regions(items)
 
 
 def recognize_plate(img_bgr):
@@ -137,7 +135,7 @@ def recognize_plate(img_bgr):
     kept as-is for comparison against plate_validator's smarter region
     scoring (see evaluate_ocr.py).
 
-    5a: img_bgr is pre-processed before OCR (same path as recognize_plate_candidates).
+    Uses original pixels and the same row ordering as recognize_plate_candidates.
     """
     candidates = recognize_plate_candidates(img_bgr)  # preprocessing applied inside
     if not candidates:

@@ -1,50 +1,15 @@
-"""
-Phase 5 - Step 1: Convert augmented_manifest.json (VOC-style absolute-pixel
-boxes) into the folder structure + label format ultralytics YOLO expects:
-
-    ml/data/yolo_dataset/
-        images/train/*.jpg
-        images/val/*.jpg
-        labels/train/*.txt   <- one line per box: "class x_center y_center w h" (all normalized 0-1)
-        labels/val/*.txt
-        data.yaml
-
-Single class: "number_plate" (class id 0).
-
-Splits BY SOURCE PHOTO (same grouping approach as Phases 3/4) so a photo's
-clear/hazy/rainy/blurry variants never straddle train and val -- otherwise
-val "accuracy" would partly just be memorized background content.
-
-We train on the FULL augmented set (clear + every weather condition/severity)
-rather than clear images only: even with good upstream restoration (Phase 4),
-real-world residual haze/blur/rain will slip through imperfectly, so the
-detector should be robust on its own, not solely dependent on restoration
-being perfect.
-
-Usage:
-    python ml/scripts/prepare_yolo_dataset.py
-"""
-
+"""Build isolated YOLO datasets; never merge new splits into old directories."""
 import argparse
 import json
-import random
 import shutil
+import uuid
 from pathlib import Path
-from collections import defaultdict
+from dataset_utils import load_manifest, split_entries, image_path, source_id, provenance
+from model_artifacts import atomic_json
 
 ML_DIR = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ML_DIR / "data" / "processed" / "augmented_manifest.json"
 YOLO_DIR = ML_DIR / "data" / "yolo_dataset"
-
-CLASS_NAMES = ["number_plate"]
-
-SEED = 42
-random.seed(SEED)
-
-
-def group_key(image_path: str) -> str:
-    return Path(image_path).stem
-
 
 def voc_to_yolo_line(box, img_w, img_h, class_id=0):
     xmin, ymin, xmax, ymax = box["xmin"], box["ymin"], box["xmax"], box["ymax"]
@@ -60,79 +25,55 @@ def voc_to_yolo_line(box, img_w, img_h, class_id=0):
     return f"{class_id} {xc:.6f} {yc:.6f} {wn:.6f} {hn:.6f}"
 
 
+def prepare_dataset(manifest, out_dir, val_frac=0.15, test_frac=0.15):
+    splits = split_entries(load_manifest(manifest), val_frac, test_frac)
+    # Complete preflight before publishing anything. Missing images must not
+    # silently shrink validation or turn corrupt annotations into negatives.
+    for entries in splits.values():
+        for entry in entries:
+            if not image_path(entry, ML_DIR).is_file():
+                raise FileNotFoundError(image_path(entry, ML_DIR))
+            if entry["width"] <= 0 or entry["height"] <= 0:
+                raise ValueError("Image dimensions must be positive")
+            for box in entry["boxes"]:
+                if voc_to_yolo_line(box, entry["width"], entry["height"]) is None:
+                    raise ValueError(f"Invalid box in {entry['image_path']}: {box}")
+    out_dir = Path(out_dir)
+    build_name = "builds/" + uuid.uuid4().hex
+    build_dir = out_dir / build_name
+    for split, entries in splits.items():
+        images, labels = build_dir / "images" / split, build_dir / "labels" / split
+        images.mkdir(parents=True)
+        labels.mkdir(parents=True)
+        for index, entry in enumerate(entries):
+            src = image_path(entry, ML_DIR)
+            name = f"{index:06d}_{src.stem}"
+            shutil.copy2(src, images / (name + src.suffix.lower()))
+            lines = [voc_to_yolo_line(b, entry["width"], entry["height"]) for b in entry["boxes"]]
+            (labels / (name + ".txt")).write_text("\n".join(lines), encoding="utf-8")
+        atomic_json(build_dir / (split + "_manifest.json"), entries)
+    record = provenance(splits["train"] + splits["val"], ML_DIR)
+    atomic_json(build_dir / "provenance.json", record)
+    # No 'path' key: Ultralytics resolves train/val relative to this YAML.
+    yaml = (f"train: {build_name}/images/train\nval: {build_name}/images/val\n"
+            + (f"test: {build_name}/images/test\n" if splits["test"] else "")
+            + f"provenance: {build_name}/provenance.json\nnc: 1\nnames: ['number_plate']\n")
+    temporary = out_dir / "data.yaml.tmp"
+    temporary.write_text(yaml, encoding="utf-8")
+    temporary.replace(out_dir / "data.yaml")
+    print(f"Published {out_dir / 'data.yaml'}; previous builds remain available.")
+    print({split: len(entries) for split, entries in splits.items()})
+    return build_dir
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--manifest", default=str(MANIFEST_PATH))
     parser.add_argument("--out_dir", default=str(YOLO_DIR))
     parser.add_argument("--val_frac", type=float, default=0.15)
+    parser.add_argument("--test_frac", type=float, default=0.15)
     args = parser.parse_args()
-
-    with open(args.manifest) as f:
-        entries = json.load(f)
-
-    groups = defaultdict(list)
-    for e in entries:
-        groups[group_key(e["image_path"])].append(e)
-
-    stems = list(groups.keys())
-    random.shuffle(stems)
-    n_val = max(1, int(len(stems) * args.val_frac))
-    val_stems = set(stems[:n_val])
-
-    out_dir = Path(args.out_dir)
-    for split in ["train", "val"]:
-        (out_dir / "images" / split).mkdir(parents=True, exist_ok=True)
-        (out_dir / "labels" / split).mkdir(parents=True, exist_ok=True)
-
-    counts = {"train": 0, "val": 0}
-    box_counts = {"train": 0, "val": 0}
-    skipped_no_boxes = 0
-
-    for stem, items in groups.items():
-        split = "val" if stem in val_stems else "train"
-        for e in items:
-            src_img = ML_DIR / e["image_path"]
-            if not src_img.exists():
-                print(f"WARNING: missing image {src_img}, skipping")
-                continue
-
-            # unique filename: condition_severity_stem.jpg (avoids collisions --
-            # the same stem repeats across clear/haze/rain/blur/lowlight folders)
-            unique_name = f"{e['condition']}_{e['severity']}_{stem}"
-            dst_img = out_dir / "images" / split / f"{unique_name}.jpg"
-            shutil.copy2(src_img, dst_img)
-
-            lines = []
-            for box in e["boxes"]:
-                line = voc_to_yolo_line(box, e["width"], e["height"])
-                if line:
-                    lines.append(line)
-
-            if not lines:
-                skipped_no_boxes += 1
-            label_path = out_dir / "labels" / split / f"{unique_name}.txt"
-            label_path.write_text("\n".join(lines))
-
-            counts[split] += 1
-            box_counts[split] += len(lines)
-
-    data_yaml = out_dir / "data.yaml"
-    data_yaml.write_text(
-        f"path: {out_dir.resolve()}\n"
-        f"train: images/train\n"
-        f"val: images/val\n"
-        f"nc: {len(CLASS_NAMES)}\n"
-        f"names: {CLASS_NAMES}\n"
-    )
-
-    print(f"{len(stems) - n_val} train photos, {n_val} val photos")
-    print(f"Train: {counts['train']} images, {box_counts['train']} boxes")
-    print(f"Val:   {counts['val']} images, {box_counts['val']} boxes")
-    if skipped_no_boxes:
-        print(f"NOTE: {skipped_no_boxes} images had zero valid boxes after conversion "
-              f"(empty label file written -- YOLO treats these as background/negatives)")
-    print(f"\nWrote dataset -> {out_dir}")
-    print(f"data.yaml -> {data_yaml}")
+    prepare_dataset(args.manifest, args.out_dir, args.val_frac, args.test_frac)
 
 
 if __name__ == "__main__":

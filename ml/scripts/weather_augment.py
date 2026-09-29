@@ -24,6 +24,8 @@ Usage:
     python ml/scripts/weather_augment.py
 """
 
+from dataset_utils import load_manifest, source_id, image_path
+from model_artifacts import sha256_file
 import argparse
 import json
 import random
@@ -160,8 +162,7 @@ def main():
     parser.add_argument("--severities", nargs="+", default=SEVERITIES)
     args = parser.parse_args()
 
-    with open(args.manifest) as f:
-        entries = json.load(f)
+    entries = load_manifest(args.manifest)
 
     out_dir = Path(args.out_dir)
     clear_dir = out_dir / "clear"
@@ -171,26 +172,28 @@ def main():
     preview_samples = {}  # condition -> one example image for the sanity grid
 
     for entry in entries:
-        img_path = ML_DIR / entry["image_path"]
+        img_path = image_path(entry, ML_DIR)
         img = cv2.imread(str(img_path))
         if img is None:
-            print(f"WARNING: could not read {img_path}, skipping")
-            continue
+            raise FileNotFoundError(img_path)
 
         img_resized, boxes_resized, scale = resize_with_boxes(img, entry["boxes"])
         h, w = img_resized.shape[:2]
 
         # save the clean/resized version too -- Quality Analyzer's "clear" class
-        clear_name = Path(entry["image_path"]).stem + ".jpg"
+        clear_name = source_id(entry).replace(":", "_") + ".jpg"
         clear_path = clear_dir / clear_name
         cv2.imwrite(str(clear_path), img_resized, [cv2.IMWRITE_JPEG_QUALITY, 95])
         augmented_manifest.append({
-            "image_path": str(clear_path.relative_to(ML_DIR)),
+            "image_path": clear_path.relative_to(ML_DIR).as_posix(),
             "width": w, "height": h,
             "boxes": boxes_resized,
             "condition": "clear",
             "severity": "none",
             "orig_source": entry["source"],
+                    "source_id": source_id(entry),
+                    "source_sha256": entry.get("source_sha256") or sha256_file(img_path),
+                    **({"split": entry["split"]} if "split" in entry else {}),
         })
         preview_samples.setdefault("clear", img_resized)
 
@@ -199,17 +202,20 @@ def main():
                 degraded = fn(img_resized, severity)
                 cond_dir = out_dir / condition / severity
                 cond_dir.mkdir(parents=True, exist_ok=True)
-                out_name = Path(entry["image_path"]).stem + ".jpg"
+                out_name = source_id(entry).replace(":", "_") + ".jpg"
                 out_path = cond_dir / out_name
                 cv2.imwrite(str(out_path), degraded, [cv2.IMWRITE_JPEG_QUALITY, 95])
 
                 augmented_manifest.append({
-                    "image_path": str(out_path.relative_to(ML_DIR)),
+                    "image_path": out_path.relative_to(ML_DIR).as_posix(),
                     "width": w, "height": h,
                     "boxes": boxes_resized,
                     "condition": condition,
                     "severity": severity,
                     "orig_source": entry["source"],
+                    "source_id": source_id(entry),
+                    "source_sha256": entry.get("source_sha256") or sha256_file(img_path),
+                    **({"split": entry["split"]} if "split" in entry else {}),
                 })
                 key = f"{condition}_{severity}"
                 if key not in preview_samples:

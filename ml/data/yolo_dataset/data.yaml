@@ -1,5 +1,6 @@
-path: C:\Users\LOQ\Desktop\anpr-adverse-weather\ml\data\yolo_dataset
-train: images/train
-val: images/val
+train: builds/e8ddda40da284cd0be05fc82c7751100/images/train
+val: builds/e8ddda40da284cd0be05fc82c7751100/images/val
+test: builds/e8ddda40da284cd0be05fc82c7751100/images/test
+provenance: builds/e8ddda40da284cd0be05fc82c7751100/provenance.json
 nc: 1
 names: ['number_plate']

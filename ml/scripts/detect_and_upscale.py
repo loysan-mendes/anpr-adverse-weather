@@ -14,6 +14,7 @@ import cv2
 from ultralytics import YOLO
 
 from super_resolve import upscale_image
+from model_artifacts import resolve_detector
 
 ML_DIR = Path(__file__).resolve().parents[1]
 YOLO_WEIGHTS = ML_DIR / "models" / "yolo_runs" / "plate_detector" / "weights" / "best.pt"
@@ -22,7 +23,7 @@ YOLO_WEIGHTS = ML_DIR / "models" / "yolo_runs" / "plate_detector" / "weights" / 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--image", required=True)
-    parser.add_argument("--weights", default=str(YOLO_WEIGHTS))
+    parser.add_argument("--weights", help="Detector checkpoint (default: active or newest trained model)")
     parser.add_argument("--conf", type=float, default=0.25, help="detection confidence threshold")
     parser.add_argument("--out_dir", default=None, help="default: <image_dir>/<image_stem>_crops/")
     args = parser.parse_args()
@@ -31,7 +32,7 @@ def main():
     out_dir = Path(args.out_dir) if args.out_dir else img_path.parent / f"{img_path.stem}_crops"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    model = YOLO(args.weights)
+    model = YOLO(str(resolve_detector(args.weights)))
     img = cv2.imread(str(img_path))
     if img is None:
         raise FileNotFoundError(f"Could not read {img_path}")

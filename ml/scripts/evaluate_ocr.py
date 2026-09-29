@@ -23,11 +23,12 @@ import cv2
 
 from ocr_plate import recognize_plate_candidates
 from plate_validator import best_candidate
+from dataset_utils import load_manifest, image_path
 from super_resolve import upscale_image
 
 ML_DIR = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ML_DIR / "data" / "processed" / "manifest.json"
-OUT_PATH = ML_DIR / "data" / "processed" / "ocr_eval_results.json"
+OUT_PATH = ML_DIR / "data" / "processed" / "ocr_component_results_current.json"
 
 
 def levenshtein(a: str, b: str) -> int:
@@ -63,12 +64,11 @@ def naive_join(candidates):
 
 
 def main():
-    with open(MANIFEST_PATH) as f:
-        entries = json.load(f)
+    entries = load_manifest(MANIFEST_PATH)
 
     results = []
     for e in entries:
-        img_path = ML_DIR / e["image_path"]
+        img_path = image_path(e, ML_DIR)
         img = cv2.imread(str(img_path))
         if img is None:
             print(f"WARNING: could not read {img_path}, skipping")
@@ -87,12 +87,12 @@ def main():
 
             raw_cands = recognize_plate_candidates(crop)
             raw_join, raw_conf = naive_join(raw_cands)
-            raw_val, raw_val_score = best_candidate([c["text"] for c in raw_cands])
+            raw_val, raw_val_score = best_candidate(raw_cands)
 
             upscaled = upscale_image(crop, outscale=4)
             up_cands = recognize_plate_candidates(upscaled)
             up_join, up_conf = naive_join(up_cands)
-            up_val, up_val_score = best_candidate([c["text"] for c in up_cands])
+            up_val, up_val_score = best_candidate(up_cands)
 
             results.append({
                 "gt": gt,
@@ -119,7 +119,7 @@ def main():
         ("Upscaled, validated", "up_val_exact", "up_val_acc"),
     ]
 
-    print(f"Evaluated {n} ground-truth plates\n")
+    print(f"Component-only diagnostic: {n} ground-truth crops; NOT end-to-end accuracy.\n")
     print(f"{'':24}{'Exact match':>15}   {'Char accuracy':>14}")
     for label, ek, ak in rows:
         exact, acc = summarize(ek, ak)

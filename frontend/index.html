@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Clearplate · ANPR workspace</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body>
+<header><a class="brand" href="/" aria-label="Clearplate home"><span class="brand-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/><path d="M7 9h10v6H7z"/></svg></span>clearplate<span class="brand-tag">LAB</span></a><span class="header-note">Recognition workspace</span><span id="connection" class="connection">Connecting…</span></header>
+<main>
+<div class="intro"><div><p class="eyebrow">PRECISION IN EVERY FRAME</p><h1>Beyond the blur.<br><span>Into the details.</span></h1><p class="subtitle">Your number plate recognition workspace. Upload a scene,<br class="desktop"> uncover the details, and review every reading.</p></div><div class="local-note"><span class="local-dot"></span><div><strong>Local processing</strong><p>Your uploads stay on this computer.</p></div></div></div>
+<div class="workspace-caption"><span><span class="live-dot"></span> IMAGE ANALYSIS</span><span>01 Upload <i>/</i> 02 Recognize <i>/</i> 03 Review</span></div><div class="workspace">
+<section class="panel image-panel" aria-labelledby="input-title">
+<div class="panel-heading"><h2 id="input-title"><span class="step">01</span> Source image</h2><button id="change" class="text-button" hidden>Change image ↗</button></div>
+<div id="drop-zone" class="drop-zone"><div class="upload-art" aria-hidden="true"><div class="art-orbit"></div><div class="upload-symbol"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="8" y="6" width="32" height="36" rx="6"/><circle cx="18" cy="17" r="3"/><path d="m9 33 10-9 8 7 6-5 7 7"/></svg><span>+</span></div></div><h3>Drop a vehicle image here</h3><p>or choose one from your computer</p><button id="browse" class="secondary">Browse files <span aria-hidden="true">↗</span></button><button id="sample" class="text-button">Try a sample image ↗</button><p class="file-hint">JPG, PNG or WebP · Up to 12 MB / 12 MP</p></div>
+<input id="file" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+<div id="preview" class="preview" hidden><canvas id="canvas" aria-label="Uploaded image with vehicle and plate boxes"></canvas></div>
+<div id="file-info" class="file-info" hidden><span id="file-name"></span><span id="dimensions"></span></div>
+<div class="controls"><div><label for="profile">Recognition mode</label><select id="profile"><option value="balanced">Balanced · faster results</option><option value="exhaustive">Thorough · compare restored views</option></select></div><button id="analyze" class="primary" disabled>Analyze image <span aria-hidden="true">→</span></button></div>
+<p class="mode-hint">Thorough mode checks relevant restored views even when the original plate reads clearly.</p>
+<div id="error" class="error" role="alert" hidden></div>
+</section>
+<section class="panel results-panel" aria-labelledby="results-title"><div class="panel-heading"><h2 id="results-title"><span class="step">02</span> Recognition results</h2><span id="result-count" class="small-badge">Awaiting image</span></div>
+<div id="empty" class="empty"><div class="scan-mark" aria-hidden="true"><svg viewBox="0 0 100 72" fill="none"><path d="M18 3H3v15m79-15h15v15M3 54v15h15m79-15v15H82" stroke="currentColor" stroke-width="2"/><rect x="15" y="20" width="70" height="32" rx="5" stroke="currentColor"/><path d="M25 30v12m9-12v12m9-12v12m12-12v12m8-12v12m11-12v12" stroke="currentColor" stroke-width="3"/><path d="M0 36h100" stroke="#8b9cff" stroke-opacity=".4"/></svg></div><h3>The next reading starts here.</h3><p>Upload an image and run analysis to see<br>detected plates and their reading evidence.</p><div class="flow"><span>Detect</span><i>→</i><span>Read</span><i>→</i><span>Review</span></div></div>
+<div id="loading" class="empty" role="status" hidden><div class="spinner"></div><h3>Reading the scene…</h3><p>Identifying vehicles and recognizing plates.<br>The first run takes longer while models load.</p><span id="elapsed" class="elapsed">0 seconds</span></div>
+<div id="results" aria-live="polite" hidden><div class="metrics"><div><span>Detected</span><strong id="detected">—</strong></div><div><span>Accepted</span><strong id="accepted">—</strong></div><div><span>Analysis time</span><strong id="duration">—</strong></div></div><div id="quality" class="quality"></div><div id="vehicles" class="quality" ></div><div id="plates" class="plates"></div><div class="result-footer"><span>Click a reading to highlight its plate and matched vehicle.</span><button id="download" class="text-button">Export JSON ↓</button></div></div>
+</section></div>
+<footer><span><span class="footer-dot"></span> Built for visibility. Designed for review.</span><p>Research prototype · Confidence scores are not guarantees. Verify readings before use.</p></footer>
+</main></body></html>
+

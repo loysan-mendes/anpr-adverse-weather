@@ -12,6 +12,7 @@ import sys
 import urllib.request
 import zipfile
 from pathlib import Path
+from model_artifacts import activate_detector
 
 REPO = "loysan-mendes/anpr-adverse-weather"
 DEFAULT_TAG = "v1.0.0"
@@ -99,6 +100,10 @@ def download_and_extract(tag: str = DEFAULT_TAG, force: bool = False, root_dir: 
     try:
         with zipfile.ZipFile(dest_zip, "r") as zf:
             zf.extractall(root_dir)
+        missing = [str(f) for f in EXPECTED_FILES if not (root_dir / f).is_file()]
+        if missing:
+            raise RuntimeError(f"Incomplete model archive: {missing}")
+        activate_detector(root_dir / EXPECTED_FILES[-1], root_dir / "ml")
         print("[SUCCESS] Model weights extracted successfully:")
         for f in EXPECTED_FILES:
             full_p = root_dir / f

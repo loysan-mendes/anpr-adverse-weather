@@ -1,166 +1,149 @@
-"""
-Phase 8: Plate Validation -- clean up raw OCR output using known Indian
-plate format structure.
-
-Two things this fixes, both visible in Phase 7's evaluation:
-
-1. Contamination: OCR often detects extra nearby text (dealer stickers,
-   brand badges, hologram serials) as SEPARATE regions alongside the real
-   plate number, and naive concatenation glues everything together --
-   e.g. "SUZUKIDL3CD1210" instead of "DL3CD1210". Fix: score each
-   INDIVIDUALLY DETECTED region (and adjacent pairs, in case the true
-   plate was itself split across two regions) against known Indian plate
-   templates, keep the best-scoring one. We deliberately do NOT slice
-   arbitrary substrings out of the flattened string -- that creates
-   nonsense matches that happen to fit a template by coincidence.
-
-2. Common character misreads: OCR confuses visually similar
-   letters/digits (O/0, I/1, S/5, B/8, G/6, Z/2, D/0, T/7). Fix: when
-   a region matches a template's length but has a class mismatch at one
-   position, try that character's known confusion-pair substitute. Fewer
-   required substitutions = higher score, so a clean exact fit always
-   beats a heavily-coerced one.
-
-This is a plausibility scorer to pick the best candidate among several
-noisy OCR readings -- NOT a legal registry lookup (no real state-code
-list, no valid-district-range checking). Known remaining limitation: it
-sorts/joins candidate regions left-to-right and doesn't handle two-row
-plate layouts (series letters stacked above/below the number), so a
-scrambled two-row read won't be fixed by this alone.
-
-Usage (standalone test):
-    python ml/scripts/plate_validator.py --candidates "SUZUKI" "DL3CD1210"
-"""
-
+"""Conservative OCR selection. Scores are heuristics, not correctness probabilities."""
 import argparse
+import itertools
+import json
+import math
 import re
 
-# letter -> digit, for characters that look alike (used when a template
-# position expects a digit but OCR read a similar-looking letter)
-L2D = {
-    "O": "0",  # O and 0 are the classic OCR confusion
-    "I": "1",  # I / 1 in most plate fonts
-    "Z": "2",  # Z / 2 in sans-serif fonts
-    "S": "5",  # S / 5
-    "B": "8",  # B / 8
-    "G": "6",  # G / 6
-    "Q": "0",  # Q / 0 (tail of Q)
-    "D": "0",  # 5c: D can look like 0 in worn/faded plates
-    "T": "7",  # 5c: T misread as 7 in narrow plate fonts
-}
-# digit -> letter, the reverse direction
-D2L = {v: k for k, v in L2D.items()}
-
-# Indian plate structure templates (L=letter position, D=digit position).
-# Covers common real-world variants: 1- or 2-digit RTO code, 1- or
-# 2-letter series, 3- or 4-digit number.
-TEMPLATES = [
-    "LLDDLDDDD",   # e.g. KL 35 F 4337
-    "LLDDLLDDDD",  # e.g. WB 42 AX 7446
-    "LLDLDDDD",    # e.g. DL 3 C 1210
-    "LLDLLDDDD",   # e.g. DL 3 CD 1210
-    "LLDDDDDD",    # e.g. KL 49 8262 (no series letter)
-    "LLDDLDDD",    # e.g. KL 34 A 465 (3-digit number, older format)
-]
+L2D = {"O": "0", "I": "1", "Z": "2", "S": "5", "B": "8", "G": "6", "Q": "0", "D": "0", "T": "7"}
+D2L = {digit: tuple(k for k, v in L2D.items() if v == digit) for digit in set(L2D.values())}
+TEMPLATES = ["LLDDLDDDD", "LLDDLLDDDD", "LLDLDDDD", "LLDLLDDDD", "LLDDDDDD", "LLDDLDDD"]
 
 
-def clean(s: str) -> str:
-    return re.sub(r"[^A-Z0-9]", "", s.upper())
+def clean(text):
+    return re.sub(r"[^A-Z0-9]", "", text.upper())
 
 
 def coerce_with_cost(text, template):
-    """Try to fit `text` to `template`'s letter/digit class per position.
-    Returns (coerced_string, num_substitutions_needed) or (None, None) if
-    some position can't be satisfied even with confusion-substitution."""
+    """Keep all ambiguous substitutions; never silently choose O/Q/D."""
     if len(text) != len(template):
-        return None, None
-    out, cost = [], 0
-    for ch, t in zip(text, template):
-        if t == "L":
-            if ch.isalpha():
-                out.append(ch)
-            elif ch in D2L:
-                out.append(D2L[ch])
-                cost += 1
-            else:
-                return None, None
+        return []
+    choices, cost = [], 0
+    for character, expected in zip(text, template):
+        if (expected == "L" and character.isalpha()) or (expected == "D" and character.isdigit()):
+            choices.append((character,))
+        elif expected == "L" and character in D2L:
+            choices.append(D2L[character])
+            cost += 1
+        elif expected == "D" and character in L2D:
+            choices.append((L2D[character],))
+            cost += 1
         else:
-            if ch.isdigit():
-                out.append(ch)
-            elif ch in L2D:
-                out.append(L2D[ch])
-                cost += 1
-            else:
-                return None, None
-    return "".join(out), cost
+            return []
+    return [("".join(parts), cost) for parts in itertools.product(*choices)]
+
+
+def template_fits(text):
+    fits = {}
+    for template in TEMPLATES:
+        for proposed, cost in coerce_with_cost(text, template):
+            # A dropped series letter can masquerade as a no-series plate.
+            # Keep this format for suggestions, requiring human review.
+            base = 0.70 if template == "LLDDDDDD" else 1.0
+            score = max(0.0, base - 0.08 * cost)
+            fits[proposed] = max(score, fits.get(proposed, 0.0))
+    return fits
 
 
 def best_template_fit(text):
-    """Best (coerced_text, score) across all templates for one string.
-    score: 1.0 for an exact fit (no substitutions needed), decreasing
-    slightly per substitution required; None if no template matches this
-    length at all."""
-    best = None
-    for t in TEMPLATES:
-        coerced, cost = coerce_with_cost(text, t)
-        if coerced is None:
+    fits = sorted(template_fits(clean(text)).items(), key=lambda item: (-item[1], item[0]))
+    if not fits or (len(fits) > 1 and fits[0][1] == fits[1][1]):
+        return None
+    return fits[0]
+
+
+def order_regions(regions):
+    """Cluster boxes by vertical overlap, then read each row left to right."""
+    if not regions or any(not r.get("box") for r in regions):
+        return list(regions)
+    rows = []
+    for region in sorted(regions, key=lambda r: (r["box"][1] + r["box"][3]) / 2):
+        x1, y1, x2, y2 = region["box"]
+        matches = []
+        for row in rows:
+            top = sum(r["box"][1] for r in row) / len(row)
+            bottom = sum(r["box"][3] for r in row) / len(row)
+            overlap = max(0.0, min(bottom, y2)-max(top, y1)) / max(1.0, min(bottom-top, y2-y1))
+            if overlap >= 0.5:
+                matches.append((overlap, row))
+        if matches:
+            max(matches, key=lambda item: item[0])[1].append(region)
+        else:
+            rows.append([region])
+    rows.sort(key=lambda row: min(r["box"][1] for r in row))
+    return [r for row in rows for r in sorted(row, key=lambda r: r["box"][0])]
+
+
+def select_candidate(candidates, min_confidence=0.80, min_score=0.75, ambiguity_margin=0.08):
+    regions = []
+    for candidate in candidates:
+        region = dict(candidate) if isinstance(candidate, dict) else {"text": candidate, "conf": 0.0}
+        region["text"] = clean(region["text"])
+        if not region["text"] or region["text"] == "IND":
             continue
-        s = max(0.5, 1.0 - 0.08 * cost)
-        if best is None or s > best[1]:
-            best = (coerced, s)
-    return best
-
-
-def partial_score(text):
-    """Fallback plausibility score for strings that don't fit any
-    template length -- some credit for looking plate-ish, always below
-    a real template fit."""
-    partial = 0.0
-    if len(text) >= 2 and text[:2].isalpha():
-        partial += 0.15
-    digit_frac = sum(c.isdigit() for c in text) / max(len(text), 1)
-    partial += 0.1 * digit_frac
-    if 7 <= len(text) <= 10:
-        partial += 0.1
-    return partial
+        confidence = float(region.get("conf", 0.0))
+        region["conf"] = max(0.0, min(1.0, confidence)) if math.isfinite(confidence) else 0.0
+        regions.append(region)
+    regions = order_regions(regions)
+    hypotheses = {}
+    for start in range(len(regions)):
+        for end in range(start+1, len(regions)+1):
+            parts = regions[start:end]
+            text = "".join(r["text"] for r in parts)
+            if len(text) > 10:
+                break
+            confidence = min(r["conf"] for r in parts)
+            omitted = regions[:start] + regions[end:]
+            penalty = 0.08 * sum(len(r["text"]) <= 4 for r in omitted)
+            for proposed, format_score in template_fits(text).items():
+                score = max(0.0, confidence * format_score - penalty)
+                item = {"text": proposed, "format_score": format_score, "ocr_confidence": confidence, "selection_score": score}
+                if proposed not in hypotheses or score > hypotheses[proposed]["selection_score"]:
+                    hypotheses[proposed] = item
+    ranked = sorted(hypotheses.values(), key=lambda r: (-r["selection_score"], r["text"]))
+    if not ranked:
+        return {"plate_text": "", "proposed_text": "", "status": "unreadable", "format_score": 0.0,
+                "ocr_confidence": 0.0, "selection_score": 0.0, "alternatives": []}
+    best = ranked[0]
+    ambiguous = len(ranked) > 1 and best["selection_score"] - ranked[1]["selection_score"] < ambiguity_margin
+    accepted = (not ambiguous and best["ocr_confidence"] >= min_confidence
+                and best["selection_score"] >= min_score and best["format_score"] >= 0.84)
+    return {"plate_text": best["text"] if accepted else "", "proposed_text": best["text"],
+            "status": "accepted" if accepted else "uncertain",
+            **{k: best[k] for k in ("format_score", "ocr_confidence", "selection_score")}, "alternatives": ranked[:5]}
 
 
 def best_candidate(candidates):
-    """candidates: list of raw OCR strings from individually detected text
-    regions (NOT pre-joined). Scores each region alone, and each adjacent
-    pair joined together (covers a true plate split across 2 regions).
-    Returns (best_text, score)."""
-    cleaned = [clean(c) for c in candidates if clean(c)]
-    if not cleaned:
-        return "", 0.0
+    """Compatibility tuple. Supply OCR dictionaries including confidence."""
+    result = select_candidate(candidates)
+    return result["plate_text"], result["selection_score"]
 
-    pool = list(cleaned)
-    for i in range(len(cleaned) - 1):
-        pool.append(cleaned[i] + cleaned[i + 1])
-        pool.append(cleaned[i + 1] + cleaned[i])  # handles stacked/two-row layouts
-    pool.append("".join(cleaned))  # full join, as a last-resort candidate
 
-    best_text, best_score = pool[0], -1.0
-    for cand in pool:
-        fit = best_template_fit(cand)
-        s = fit[1] if fit else partial_score(cand)
-        text = fit[0] if fit else cand
-        if s > best_score:
-            best_text, best_score = text, s
+def strong_reading(reading):
+    """Conservative compute gate, not a calibrated guarantee of correctness."""
+    alternatives = reading.get("alternatives", [])
+    margin = (alternatives[0]["selection_score"] - alternatives[1]["selection_score"]
+              if len(alternatives) > 1 else 1.0)
+    return (reading.get("status") == "accepted" and reading.get("format_score", 0) == 1.0
+            and reading.get("ocr_confidence", 0) >= 0.95 and margin >= 0.15)
 
-    return best_text, best_score
+
+def choose_reading(readings, ambiguity_margin=0.08):
+    """Preserve disagreements across original/restored/upscaled views."""
+    ranked = sorted(readings, key=lambda r: r["selection_score"], reverse=True)
+    best = dict(ranked[0])
+    competing = [r for r in ranked[1:] if r["proposed_text"] and r["proposed_text"] != best["proposed_text"]]
+    if competing and best["selection_score"] - competing[0]["selection_score"] < ambiguity_margin:
+        best.update(plate_text="", status="uncertain")
+    return best
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--candidates", nargs="+", required=True,
-                         help="one or more individually-detected OCR text regions")
+    parser.add_argument("--candidates", nargs="+", required=True)
+    parser.add_argument("--confidence", type=float, default=0.0, help="Measured OCR confidence; unknown stays uncertain")
     args = parser.parse_args()
-
-    text, s = best_candidate(args.candidates)
-    print(f"Input regions: {args.candidates}")
-    print(f"Best guess:    {text}")
-    print(f"Score:         {s:.2f}")
+    print(json.dumps(select_candidate([{"text": t, "conf": args.confidence} for t in args.candidates]), indent=2))
 
 
 if __name__ == "__main__":

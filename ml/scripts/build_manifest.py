@@ -30,6 +30,7 @@ Usage:
     python ml/scripts/build_manifest.py
 """
 
+from model_artifacts import sha256_file
 import argparse
 import json
 import xml.etree.ElementTree as ET
@@ -95,7 +96,9 @@ def parse_xml(xml_path: Path, image_dir: Path, source_label: str):
         boxes.append(box)
 
     entry = {
-        "image_path": str(img_path.relative_to(ML_DIR)),
+        "image_path": img_path.relative_to(ML_DIR).as_posix(),
+        "source_id": source_label + ":" + img_path.stem,
+        "source_sha256": sha256_file(img_path),
         "width": width,
         "height": height,
         "source": source_label,
@@ -125,6 +128,8 @@ def main():
             else:
                 manifest.append(entry)
 
+    if not manifest or misses:
+        raise RuntimeError(f"Manifest incomplete: {len(manifest)} images, {len(misses)} missing matches. Check raw annotations.")
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with open(out_path, "w") as f:

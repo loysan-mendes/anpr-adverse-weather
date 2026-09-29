@@ -38,6 +38,9 @@ from torch.utils.data import Dataset, DataLoader
 import matplotlib.pyplot as plt
 
 from unet_model import UNet
+from image_ops import aligned_patch
+from training_config import restoration_parser, ssim_function
+from dataset_utils import load_manifest, split_entries, image_path, source_id, write_provenance
 
 ML_DIR = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ML_DIR / "data" / "processed" / "augmented_manifest.json"
@@ -50,37 +53,27 @@ np.random.seed(SEED)
 torch.manual_seed(SEED)
 
 
-def group_key(image_path: str) -> str:
-    return Path(image_path).stem
-
-
-def build_pairs(manifest_path: Path, condition: str, val_frac=0.15):
-    with open(manifest_path) as f:
-        entries = json.load(f)
-
-    groups = defaultdict(dict)
-    for e in entries:
-        stem = group_key(e["image_path"])
-        if e["condition"] == "clear":
-            groups[stem]["clear"] = e["image_path"]
-        elif e["condition"] == condition:
-            groups[stem].setdefault("degraded", []).append(e["image_path"])
-
-    stems = [s for s, d in groups.items() if "clear" in d and d.get("degraded")]
-    random.shuffle(stems)
-    n_val = max(1, int(len(stems) * val_frac))
-    val_stems = set(stems[:n_val])
-
-    train_pairs, val_pairs = [], []
-    for stem in stems:
-        clear_path = groups[stem]["clear"]
-        for deg_path in groups[stem]["degraded"]:
-            (val_pairs if stem in val_stems else train_pairs).append((deg_path, clear_path))
-
-    print(f"[{condition}] {len(stems)} source photos with this condition -> "
-          f"{len(stems) - n_val} train photos ({len(train_pairs)} pairs), "
-          f"{n_val} val photos ({len(val_pairs)} pairs)")
-    return train_pairs, val_pairs
+def build_pairs(manifest_path: Path, condition: str, val_frac=0.15, test_frac=0.15):
+    splits = split_entries(load_manifest(manifest_path), val_frac, test_frac)
+    result = []
+    for split in ("train", "val"):
+        groups = defaultdict(dict)
+        for entry in splits[split]:
+            group = groups[source_id(entry)]
+            if entry["condition"] == "clear":
+                group["clear"] = entry["image_path"]
+            elif entry["condition"] == condition:
+                group.setdefault("degraded", []).append(entry)
+        pairs = []
+        for key, group in groups.items():
+            if group.get("degraded") and "clear" not in group:
+                raise ValueError(f"Missing clean counterpart: {key}")
+            pairs.extend({"degraded": entry["image_path"], "clean": group["clear"], "boxes": entry["boxes"]}
+                         for entry in group.get("degraded", []))
+        if not pairs:
+            raise ValueError(f"No {condition} pairs in {split}")
+        result.append(pairs)
+    return tuple(result)
 
 
 class PairedDataset(Dataset):
@@ -93,19 +86,20 @@ class PairedDataset(Dataset):
         return len(self.pairs)
 
     def _load(self, rel_path):
-        img = cv2.imread(str(ML_DIR / rel_path))
+        img = cv2.imread(str(image_path({"image_path": rel_path}, ML_DIR)))
+        if img is None:
+            raise FileNotFoundError(rel_path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img = cv2.resize(img, (self.img_size, self.img_size), interpolation=cv2.INTER_AREA)
         return img
 
     def __getitem__(self, idx):
-        deg_path, clean_path = self.pairs[idx]
-        deg = self._load(deg_path)
-        clean = self._load(clean_path)
-
-        if self.augment and random.random() < 0.5:
-            deg = np.ascontiguousarray(deg[:, ::-1, :])
-            clean = np.ascontiguousarray(clean[:, ::-1, :])
+        pair = self.pairs[idx]
+        deg = self._load(pair["degraded"])
+        clean = self._load(pair["clean"])
+        deg, clean = aligned_patch(deg, clean, self.img_size, pair["boxes"], random if self.augment else None)
+        # Teach the restorer to leave already-clear character strokes alone.
+        if self.augment and random.random() < 0.1:
+            deg = clean.copy()
 
         deg_t = torch.from_numpy(deg.astype(np.float32) / 255.0).permute(2, 0, 1)
         clean_t = torch.from_numpy(clean.astype(np.float32) / 255.0).permute(2, 0, 1)
@@ -152,7 +146,7 @@ class RestorationLoss(nn.Module):
     and contrast restoration than per-pixel L1 alone. Blended at 0.3 weight
     so it guides without dominating the pixel-accurate L1 signal.
 
-    Falls back to L1 + Sobel only if torchmetrics is unavailable.
+    SSIM is required when its weight is positive; use --ssim_weight 0 to disable explicitly.
     """
 
     def __init__(self, edge_weight=1.0, ssim_weight=0.3):
@@ -161,12 +155,9 @@ class RestorationLoss(nn.Module):
         self.ssim_weight = ssim_weight
         self.l1 = nn.L1Loss()
         self.grad = SobelGradLoss()
-        # Lazy import: torchmetrics is optional; fall back gracefully.
-        try:
-            from torchmetrics.functional import structural_similarity_index_measure as _ssim
-            self._ssim_fn = _ssim
-        except ImportError:
-            self._ssim_fn = None
+        if edge_weight < 0 or ssim_weight < 0:
+            raise ValueError("Loss weights must be nonnegative")
+        self._ssim_fn = ssim_function(ssim_weight)
 
     def forward(self, pred, target):
         loss = self.l1(pred, target)
@@ -179,21 +170,27 @@ class RestorationLoss(nn.Module):
         return loss
 
 
-def run_epoch(model, loader, criterion, optimizer, device, train=True):
+def run_epoch(model, loader, criterion, optimizer, device, train=True, scaler=None):
     model.train() if train else model.eval()
     total_loss, total_psnr, n = 0.0, 0.0, 0
 
     context = torch.enable_grad() if train else torch.no_grad()
     with context:
         for deg, clean in loader:
-            deg, clean = deg.to(device), clean.to(device)
+            deg, clean = deg.to(device, non_blocking=True), clean.to(device, non_blocking=True)
             if train:
-                optimizer.zero_grad()
-            pred = model(deg)
-            loss = criterion(pred, clean)
+                optimizer.zero_grad(set_to_none=True)
+            with torch.autocast(device_type=device.type, enabled=scaler is not None and scaler.is_enabled()):
+                pred = model(deg)
+            loss = criterion(pred.float(), clean)
             if train:
-                loss.backward()
-                optimizer.step()
+                if scaler is not None:
+                    scaler.scale(loss).backward()
+                    scaler.step(optimizer)
+                    scaler.update()
+                else:
+                    loss.backward()
+                    optimizer.step()
 
             bs = deg.size(0)
             total_loss += loss.item() * bs
@@ -225,45 +222,37 @@ def save_preview_grid(model, val_pairs, device, out_path, n=4):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--condition", required=True, choices=["haze", "rain", "blur"])
-    parser.add_argument("--manifest", default=str(MANIFEST_PATH))
-    parser.add_argument("--epochs", type=int, default=30)
-    parser.add_argument("--batch_size", type=int, default=8)
-    parser.add_argument("--lr", type=float, default=2e-4)
-    parser.add_argument("--val_frac", type=float, default=0.15)
-    parser.add_argument("--edge_weight", type=float, default=1.0,
-                         help="Weight for the Sobel-gradient sharpness loss on top of L1. "
-                              "0 = old behavior (L1 only). Higher values push harder for sharp "
-                              "edges -- use a higher value (e.g. 2.0-3.0) for --condition blur, "
-                              "which is the one most prone to hedging toward a smoothed output.")
+    parser = restoration_parser(MANIFEST_PATH)
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     print(f"Training resolution: {IMG_SIZE}x{IMG_SIZE}")
-    print(f"Loss: L1 + 0.3*SSIM + {args.edge_weight}*Sobel-gradient")
+    print(f"Loss: L1 + {args.ssim_weight}*SSIM + {args.edge_weight}*Sobel-gradient")
 
-    train_pairs, val_pairs = build_pairs(Path(args.manifest), args.condition, args.val_frac)
+    train_pairs, val_pairs = build_pairs(Path(args.manifest), args.condition, args.val_frac, args.test_frac)
     train_ds = PairedDataset(train_pairs, augment=True)
     val_ds = PairedDataset(val_pairs, augment=False)
-    train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, num_workers=2)
-    val_loader = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False, num_workers=2)
+    loader_options = dict(num_workers=args.workers, pin_memory=device.type == "cuda", persistent_workers=args.workers > 0)
+    train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, **loader_options)
+    val_loader = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False, **loader_options)
 
-    model = UNet(base=32).to(device)
-    criterion = RestorationLoss(edge_weight=args.edge_weight).to(device)
+    model = UNet(base=32, residual=args.residual).to(device)
+    criterion = RestorationLoss(edge_weight=args.edge_weight, ssim_weight=args.ssim_weight).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-5)
+    scaler = torch.amp.GradScaler("cuda", enabled=args.amp and device.type == "cuda")
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
 
-    model_dir = MODEL_ROOT / args.condition
+    model_dir = Path(args.out_dir) if args.out_dir else MODEL_ROOT / args.condition
     model_dir.mkdir(parents=True, exist_ok=True)
 
     history = {"train_loss": [], "val_loss": [], "train_psnr": [], "val_psnr": []}
     best_val_psnr = -1.0
+    stale_epochs = 0
 
     for epoch in range(1, args.epochs + 1):
-        tr_loss, tr_psnr = run_epoch(model, train_loader, criterion, optimizer, device, train=True)
-        val_loss, val_psnr = run_epoch(model, val_loader, criterion, optimizer, device, train=False)
+        tr_loss, tr_psnr = run_epoch(model, train_loader, criterion, optimizer, device, train=True, scaler=scaler)
+        val_loss, val_psnr = run_epoch(model, val_loader, criterion, optimizer, device, train=False, scaler=scaler)
         scheduler.step()
 
         history["train_loss"].append(tr_loss)
@@ -275,16 +264,28 @@ def main():
               f"train loss {tr_loss:.4f} psnr {tr_psnr:.2f} | "
               f"val loss {val_loss:.4f} psnr {val_psnr:.2f}")
 
-        if val_psnr >= best_val_psnr:
+        if val_psnr > best_val_psnr + 1e-4:
             best_val_psnr = val_psnr
+            stale_epochs = 0
             torch.save({
                 "model_state": model.state_dict(),
                 "condition": args.condition,
+                "architecture": {"base": 32, "residual": args.residual},
+                "loss_config": {"l1": 1.0, "ssim": args.ssim_weight, "sobel": args.edge_weight},
                 "img_size": IMG_SIZE,
+                "training_sampling": "native_plate_focused_patches_with_10_percent_identity",
+                "amp": scaler.is_enabled(),
                 "epoch": epoch,
-                "val_psnr": val_psnr,
+                "val_psnr": float(val_psnr),
             }, model_dir / "best_model.pt")
+            splits = split_entries(load_manifest(args.manifest), args.val_frac, args.test_frac)
+            write_provenance(model_dir / "best_model.pt", splits["train"] + splits["val"], ML_DIR)
             print(f"  -> saved new best checkpoint (val_psnr={val_psnr:.2f} dB)")
+        else:
+            stale_epochs += 1
+            if stale_epochs >= args.patience:
+                print(f"Early stopping after {args.patience} epochs without validation improvement")
+                break
 
     fig, axes = plt.subplots(1, 2, figsize=(11, 4))
     axes[0].plot(history["train_loss"], label="train"); axes[0].plot(history["val_loss"], label="val")

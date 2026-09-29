@@ -3,7 +3,7 @@
 
 TorchScript compiles the UNet graph to a serialised, optimised IR that the
 PyTorch runtime can execute without Python overhead. On CPU this gives a
-20-40% inference speedup with zero accuracy cost -- no retraining needed.
+potential inference speedup; numerical parity is checked before publication.
 
 Exports model_scripted.pt alongside the existing best_model.pt for each
 condition. decision_engine.py will load the scripted version when present
@@ -14,12 +14,14 @@ Usage (run once after training all three restoration models):
     python ml/scripts/export_unet.py --conditions haze  # single condition
 """
 
+import math
 import argparse
 from pathlib import Path
 
 import torch
 
 from unet_model import UNet
+from model_artifacts import sha256_file, atomic_json
 
 ML_DIR = Path(__file__).resolve().parents[1]
 MODEL_ROOT = ML_DIR / "models" / "restoration"
@@ -35,10 +37,11 @@ def export_condition(condition: str, device: torch.device) -> None:
         return
 
     print(f"  [{condition}] Loading checkpoint ... ", end="", flush=True)
+    checkpoint_hash = sha256_file(ckpt_path)
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
 
     is_residual = any("outc_raw" in k for k in ckpt["model_state"].keys())
-    model = UNet(base=32, residual=is_residual)
+    model = UNet(**ckpt.get("architecture", {"base": 32, "residual": is_residual}))
     model.load_state_dict(ckpt["model_state"])
     model.to(device).eval()
     print("done")
@@ -57,8 +60,9 @@ def export_condition(condition: str, device: torch.device) -> None:
         dummy = torch.zeros(1, 3, img_size, img_size, device=device)
         scripted = torch.jit.trace(model, dummy)
 
-    scripted.save(str(out_path))
-    size_mb = out_path.stat().st_size / 1e6
+    temporary_path = out_path.with_suffix(".tmp.pt")
+    scripted.save(str(temporary_path))
+    size_mb = temporary_path.stat().st_size / 1e6
     print(f"done  ->  {out_path}  ({size_mb:.1f} MB)")
 
     # Quick sanity check: outputs should match eager mode to float32 tolerance.
@@ -69,10 +73,15 @@ def export_condition(condition: str, device: torch.device) -> None:
         eager_out = model(dummy)
         script_out = scripted(dummy)
     max_diff = (eager_out - script_out).abs().max().item()
-    if max_diff > 1e-4:
-        print(f"WARNING: max diff = {max_diff:.2e} (larger than expected)")
+    if not math.isfinite(max_diff) or max_diff > 1e-4:
+        raise RuntimeError(f"Export rejected: max output difference {max_diff:.2e}")
     else:
         print(f"OK (max diff = {max_diff:.2e})")
+    if sha256_file(ckpt_path) != checkpoint_hash:
+        raise RuntimeError("Checkpoint changed during export; retry after training finishes")
+    temporary_path.replace(out_path)
+    atomic_json(out_path.with_suffix(".json"), {"checkpoint_sha256": checkpoint_hash,
+                "scripted_sha256": sha256_file(out_path), "max_diff": max_diff})
 
 
 def main():

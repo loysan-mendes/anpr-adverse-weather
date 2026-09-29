@@ -1,0 +1,128 @@
+{
+  "evaluation": "development_diagnostic_not_independent_accuracy",
+  "date": "2026-09-28",
+  "hardware": "NVIDIA GeForce RTX 3050 6GB Laptop GPU; OCR on CPU",
+  "scope": "Same 20 fully transcribed original images, 25 plates, unchanged existing model weights; no Real-ESRGAN in either run. One run per version; warm means exclude first image.",
+  "before": {
+    "options": {
+      "use_upscale": false
+    },
+    "manifest_sha256": "b1f24a7320617682885e307e7933d30a4a11add4c8d4f75a05d571f83e04a3ae",
+    "code_sha256": {
+      "benchmark_pipeline.py": "7efad2c33f0c10f9abf5a23eba1c4a88429d25edb9f9a6daf82aade88de3ba13",
+      "build_manifest.py": "8327a5de6d9a243c0ee7e5fb36ca2926684d67cfebfa6bf66b3a1cb0e8e1c161",
+      "dataset_utils.py": "aa525e0e9cc0741f31318c28896efbe46317ad6574d1e93f1530d3bd79ad7dc1",
+      "decision_engine.py": "90a847adbe6820e49c98dad0c23dd7b59dfdc14ee3c588a37df29c8308db6ac8",
+      "detect_and_upscale.py": "2e4920af64e4bb803413cbce994b067185aa29a24bcc5e96a7d7f540c611f4e8",
+      "download_dataset.py": "3f4842ef4ce885d14faa400d63a4b4f85c8d2d9d55cce890b3073a9561c10b7e",
+      "download_weights.py": "47aab431475779b8b478a7336dda094bd5d6de9ea60c1217cc32fe9319a76979",
+      "eda.py": "af7f49032af6b321c9ca2df8715509a5aa51cf1cb505167fba70e20b18c0753e",
+      "evaluate_ocr.py": "1bd53b41fe93af5e25432c653cbe353921709f591633f1520babadeb3f89280a",
+      "evaluate_pipeline.py": "6384e23b999cf8690e0bef3f3f9c287cdfe1b652d50f838b297a8e33356a3345",
+      "export_unet.py": "758969f985b56ec364ee3553bd6e271132683262831af9b5accc9b860c9e6fed",
+      "fix_basicsr_compat.py": "686a5f08a11451859bef02c71fe83bb7bcc9331910811522c17cdc0980a6f0da",
+      "image_ops.py": "3721d0498fd5990e8824415330fd6a2f4ed893ac340a0bd46d18c24729b7a77d",
+      "model_artifacts.py": "788c5a23e548ec37b12169dc82858fb502fc4d28647ed2943fa15bc59739fd12",
+      "ocr_plate.py": "04a5325dc16b99f2da79de390825e88244dd0316c05bdf09a20c9f6b7fd365b2",
+      "plate_validator.py": "0f58ba2130ef062b6a10396f76c79db3347817c4c98054071b2b18472d61886d",
+      "predict_quality.py": "04ec9c6387608db75b29a39c496a88cefd3c6f48688908139c59a23b74024462",
+      "prepare_yolo_dataset.py": "cb5dd8cff4daffd58b91086daac2208094073bfe38a3ea857a343ebf56c921ce",
+      "super_resolve.py": "13d2dc05acdc0a77e39ac3b9995edc2c05f4a232d1112dfdfb5606d528a02fb7",
+      "training_config.py": "428e8928c506bf03b742063cc66bf62c2b537bf190f2377255c29a1cd050d9fa",
+      "train_quality_analyzer.py": "4e7b9c5bdfbc331c5211c54e9d4bfa43c0101ec59117d1c1b2e7d8e821b8d99f",
+      "train_restoration.py": "f24a952d384e802c706a002cdb8f490dbfdba7f3344aa00bf7971a33fdb4000e",
+      "train_yolo.py": "989010726fab9edbe72c3b279b910671189f4eb2b7185dd5933695ff24bd6242",
+      "unet_model.py": "fb6c997de0b3d7e4c05626ea0b1419d1a0039d41c56c2db7146caecf4fb697a1",
+      "weather_augment.py": "50f6e0beaedd5802dd1401a7ae121fe06645b45a0e920a829bfdf1e1057d3cc2"
+    },
+    "metrics": {
+      "images": 20,
+      "ground_truth_plates": 25,
+      "detections": 24,
+      "matched_detections": 24,
+      "missed_plates": 1,
+      "extra_detections": 0,
+      "accepted_readings": 16,
+      "exact_readings": 15,
+      "incorrect_accepted_readings": 1,
+      "abstentions": 8,
+      "detection_recall": 0.96,
+      "detection_precision": 1.0,
+      "end_to_end_exact_recall": 0.6,
+      "accepted_reading_precision": 0.9375
+    },
+    "latency": {
+      "cold_first_seconds": 17.274290299999848,
+      "mean_seconds": 2.8967563099999096,
+      "warm_mean_seconds": 2.140043994736755
+    }
+  },
+  "after": {
+    "options": {
+      "use_upscale": false,
+      "profile": "balanced"
+    },
+    "manifest_sha256": "b1f24a7320617682885e307e7933d30a4a11add4c8d4f75a05d571f83e04a3ae",
+    "code_sha256": {
+      "benchmark_pipeline.py": "7efad2c33f0c10f9abf5a23eba1c4a88429d25edb9f9a6daf82aade88de3ba13",
+      "build_manifest.py": "8327a5de6d9a243c0ee7e5fb36ca2926684d67cfebfa6bf66b3a1cb0e8e1c161",
+      "dataset_utils.py": "aa525e0e9cc0741f31318c28896efbe46317ad6574d1e93f1530d3bd79ad7dc1",
+      "decision_engine.py": "5567121a8af795844844dcd5b6365715a55b965d318d75a575b7fe1ff20ee7aa",
+      "detect_and_upscale.py": "2e4920af64e4bb803413cbce994b067185aa29a24bcc5e96a7d7f540c611f4e8",
+      "download_dataset.py": "3f4842ef4ce885d14faa400d63a4b4f85c8d2d9d55cce890b3073a9561c10b7e",
+      "download_weights.py": "47aab431475779b8b478a7336dda094bd5d6de9ea60c1217cc32fe9319a76979",
+      "eda.py": "af7f49032af6b321c9ca2df8715509a5aa51cf1cb505167fba70e20b18c0753e",
+      "evaluate_ocr.py": "1bd53b41fe93af5e25432c653cbe353921709f591633f1520babadeb3f89280a",
+      "evaluate_pipeline.py": "6384e23b999cf8690e0bef3f3f9c287cdfe1b652d50f838b297a8e33356a3345",
+      "export_unet.py": "758969f985b56ec364ee3553bd6e271132683262831af9b5accc9b860c9e6fed",
+      "fix_basicsr_compat.py": "686a5f08a11451859bef02c71fe83bb7bcc9331910811522c17cdc0980a6f0da",
+      "image_ops.py": "374db3e87227fc25ed6633450dace5325355a07d98f55fbf2b5ad05aa84a9b24",
+      "model_artifacts.py": "53900f5cefe5dc7e666d4ac7383729ec7eebbe434e23dbe2bd9b5062da3321d0",
+      "ocr_plate.py": "da4890d356447c23fad119ad040fe517f3b79d66cbe80526d62c7bb39b4b5515",
+      "plate_validator.py": "ee6010b4fd5746aacf5df6a3149534e004df121f656355193a2164701afa1578",
+      "predict_quality.py": "7fd2ed8cacfb463a5dd456e1fc2cde166073294a44e5c3493c3eab6fee74fb6e",
+      "prepare_yolo_dataset.py": "cb5dd8cff4daffd58b91086daac2208094073bfe38a3ea857a343ebf56c921ce",
+      "super_resolve.py": "13d2dc05acdc0a77e39ac3b9995edc2c05f4a232d1112dfdfb5606d528a02fb7",
+      "training_config.py": "428e8928c506bf03b742063cc66bf62c2b537bf190f2377255c29a1cd050d9fa",
+      "train_quality_analyzer.py": "4e7b9c5bdfbc331c5211c54e9d4bfa43c0101ec59117d1c1b2e7d8e821b8d99f",
+      "train_restoration.py": "f24a952d384e802c706a002cdb8f490dbfdba7f3344aa00bf7971a33fdb4000e",
+      "train_yolo.py": "989010726fab9edbe72c3b279b910671189f4eb2b7185dd5933695ff24bd6242",
+      "unet_model.py": "fb6c997de0b3d7e4c05626ea0b1419d1a0039d41c56c2db7146caecf4fb697a1",
+      "weather_augment.py": "50f6e0beaedd5802dd1401a7ae121fe06645b45a0e920a829bfdf1e1057d3cc2"
+    },
+    "metrics": {
+      "images": 20,
+      "ground_truth_plates": 25,
+      "detections": 24,
+      "matched_detections": 24,
+      "missed_plates": 1,
+      "extra_detections": 0,
+      "accepted_readings": 17,
+      "exact_readings": 16,
+      "incorrect_accepted_readings": 1,
+      "abstentions": 7,
+      "detection_recall": 0.96,
+      "detection_precision": 1.0,
+      "end_to_end_exact_recall": 0.64,
+      "accepted_reading_precision": 0.9411764705882353
+    },
+    "latency": {
+      "cold_first_seconds": 5.932224200001656,
+      "mean_seconds": 1.0901238350003042,
+      "warm_mean_seconds": 0.835276447368654
+    }
+  },
+  "training_smoke": {
+    "device": "NVIDIA GeForce RTX 3050 6GB Laptop GPU",
+    "torch": "2.13.0+cu130",
+    "patch_size": 128,
+    "base_channels": 8,
+    "batch_size": 2,
+    "amp": true,
+    "ssim_weight": 0,
+    "train_loss": 1.0137356519699097,
+    "val_loss": 0.46280062198638916,
+    "parameters_updated": true,
+    "checkpoint_saved": false
+  }
+}

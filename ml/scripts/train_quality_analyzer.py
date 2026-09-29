@@ -22,11 +22,12 @@ Usage:
     python ml/scripts/train_quality_analyzer.py --epochs 15
 """
 
+from training_config import checkpoint_score
 import argparse
 import json
 import random
 from pathlib import Path
-from collections import defaultdict
+from dataset_utils import load_manifest, split_entries, image_path, source_id, write_provenance
 
 import numpy as np
 import cv2
@@ -56,34 +57,11 @@ torch.manual_seed(SEED)
 
 
 # --------------------------------------------------------------- dataset ---
-def group_key(image_path: str) -> str:
-    """Every condition/severity variant of the same source photo shares
-    the same output filename stem (see weather_augment.py) -- use that as
-    the grouping key so we split by source photo, not by augmented image."""
-    return Path(image_path).stem
+def load_manifest_and_split(manifest_path: Path, val_frac=0.15, test_frac=0.15):
+    splits = split_entries(load_manifest(manifest_path), val_frac, test_frac)
+    print({key: len(value) for key, value in splits.items()})
+    return splits["train"], splits["val"]
 
-
-def load_manifest_and_split(manifest_path: Path, val_frac=0.15):
-    with open(manifest_path) as f:
-        entries = json.load(f)
-
-    groups = defaultdict(list)
-    for e in entries:
-        groups[group_key(e["image_path"])].append(e)
-
-    keys = list(groups.keys())
-    random.shuffle(keys)
-    n_val = max(1, int(len(keys) * val_frac))
-    val_keys = set(keys[:n_val])
-
-    train_entries, val_entries = [], []
-    for k, items in groups.items():
-        (val_entries if k in val_keys else train_entries).extend(items)
-
-    print(f"{len(groups)} unique source photos -> "
-          f"{len(keys) - n_val} train photos ({len(train_entries)} images), "
-          f"{n_val} val photos ({len(val_entries)} images)")
-    return train_entries, val_entries
 
 
 class QualityDataset(Dataset):
@@ -96,7 +74,7 @@ class QualityDataset(Dataset):
 
     def __getitem__(self, idx):
         e = self.entries[idx]
-        img_path = ML_DIR / e["image_path"]
+        img_path = image_path(e, ML_DIR)
         img = cv2.imread(str(img_path))
         if img is None:
             raise FileNotFoundError(f"Could not read {img_path}")
@@ -221,12 +199,13 @@ def main():
     parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--val_frac", type=float, default=0.15)
+    parser.add_argument("--test_frac", type=float, default=0.15)
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    train_entries, val_entries = load_manifest_and_split(Path(args.manifest), args.val_frac)
+    train_entries, val_entries = load_manifest_and_split(Path(args.manifest), args.val_frac, args.test_frac)
     train_tf, val_tf = make_transforms()
     train_ds = QualityDataset(train_entries, train_tf)
     val_ds = QualityDataset(val_entries, val_tf)
@@ -245,8 +224,8 @@ def main():
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
 
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
-    history = {"train_loss": [], "val_loss": [], "train_cond_acc": [], "val_cond_acc": []}
-    best_val_acc = -1.0
+    history = {"train_loss": [], "val_loss": [], "train_cond_acc": [], "val_cond_acc": [], "train_sev_acc": [], "val_sev_acc": []}
+    best_score = (-1.0, float("-inf"))
 
     for epoch in range(1, args.epochs + 1):
         tr_loss, tr_cond_acc, tr_sev_acc = run_epoch(
@@ -259,13 +238,16 @@ def main():
         history["val_loss"].append(val_loss)
         history["train_cond_acc"].append(tr_cond_acc)
         history["val_cond_acc"].append(val_cond_acc)
+        history["train_sev_acc"].append(tr_sev_acc)
+        history["val_sev_acc"].append(val_sev_acc)
 
         print(f"Epoch {epoch:2d}/{args.epochs} | "
               f"train loss {tr_loss:.3f} cond_acc {tr_cond_acc:.3f} sev_acc {tr_sev_acc:.3f} | "
               f"val loss {val_loss:.3f} cond_acc {val_cond_acc:.3f} sev_acc {val_sev_acc:.3f}")
 
-        if val_cond_acc >= best_val_acc:
-            best_val_acc = val_cond_acc
+        score = (checkpoint_score(val_cond_acc, val_sev_acc), -val_loss)
+        if score > best_score:
+            best_score = score
             torch.save({
                 "model_state": model.state_dict(),
                 "conditions": CONDITIONS,
@@ -275,8 +257,12 @@ def main():
                 "imagenet_std": IMAGENET_STD,
                 "epoch": epoch,
                 "val_cond_acc": val_cond_acc,
+                "val_sev_acc": val_sev_acc,
+                "selection_score": score[0],
+                "selection_metric": "harmonic_mean_condition_severity",
             }, MODEL_DIR / "best_model.pt")
-            print(f"  -> saved new best checkpoint (val_cond_acc={val_cond_acc:.3f})")
+            write_provenance(MODEL_DIR / "best_model.pt", train_entries + val_entries, ML_DIR)
+            print(f"  -> saved new best checkpoint (joint_score={score[0]:.3f})")
 
     with open(MODEL_DIR / "label_map.json", "w") as f:
         json.dump({"conditions": CONDITIONS, "severities": SEVERITIES}, f, indent=2)
@@ -288,12 +274,14 @@ def main():
     axes[0].legend()
     axes[1].plot(history["train_cond_acc"], label="train")
     axes[1].plot(history["val_cond_acc"], label="val")
-    axes[1].set_title("Condition Accuracy")
+    axes[1].plot(history["train_sev_acc"], label="train severity")
+    axes[1].plot(history["val_sev_acc"], label="val severity")
+    axes[1].set_title("Condition and Severity Accuracy")
     axes[1].legend()
     plt.tight_layout()
     plt.savefig(MODEL_DIR / "training_curves.png", dpi=120)
 
-    print(f"\nBest val condition accuracy: {best_val_acc:.3f}")
+    print(f"\nBest joint validation score: {best_score[0]:.3f}")
     print(f"Checkpoint saved -> {MODEL_DIR / 'best_model.pt'}")
     print(f"Training curves -> {MODEL_DIR / 'training_curves.png'}")
 

@@ -18,6 +18,7 @@ albumentations==1.4.10
 # torch
 # torchvision
 scikit-learn==1.5.1
+torchmetrics==1.4.0
 
 # --- Phase 5: YOLOv11 Detection ---
 ultralytics==8.3.0

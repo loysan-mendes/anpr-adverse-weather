@@ -22,13 +22,11 @@ CHECKPOINT_PATH = ML_DIR / "models" / "quality_analyzer" / "best_model.pt"
 
 def load_model(checkpoint_path=CHECKPOINT_PATH, device=None):
     device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # weights_only=False: safe here since this checkpoint is one we trained
-    # ourselves (it also stores plain lists/ints alongside tensors, which
-    # weights_only=True would reject).
+    # Load only trusted project checkpoints; legacy checkpoints use pickle metadata.
     ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
 
     has_bn = any("cond_bn" in k for k in ckpt["model_state"].keys())
-    model = QualityNet(len(ckpt["conditions"]), len(ckpt["severities"]), use_bn=has_bn)
+    model = QualityNet(len(ckpt["conditions"]), len(ckpt["severities"]), pretrained=False, use_bn=has_bn)
     model.load_state_dict(ckpt["model_state"])
     model.to(device)
     model.eval()
@@ -39,7 +37,7 @@ def predict(image_path, model=None, ckpt=None, device=None):
     if model is None:
         model, ckpt, device = load_model()
 
-    img = cv2.imread(str(image_path))
+    img = image_path if hasattr(image_path, "shape") else cv2.imread(str(image_path))
     if img is None:
         raise FileNotFoundError(f"Could not read {image_path}")
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -52,7 +50,7 @@ def predict(image_path, model=None, ckpt=None, device=None):
     ])
     x = tf(img).unsqueeze(0).to(device)
 
-    with torch.no_grad():
+    with torch.inference_mode():
         cond_logits, sev_logits = model(x)
         cond_probs = F.softmax(cond_logits, dim=1)[0].cpu().numpy()
         sev_probs = F.softmax(sev_logits, dim=1)[0].cpu().numpy()

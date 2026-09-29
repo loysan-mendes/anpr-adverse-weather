@@ -111,3 +111,20 @@ ml/ml/
 # YOLO run metrics/plots (regeneratable)
 # =============================================================================
 runs/
+
+# Generated detector selection and immutable dataset builds
+ml/models/active_detector.json
+ml/data/yolo_dataset/builds/
+ml/data/yolo_dataset/data.yaml.tmp
+ml/data/processed/pipeline_eval_results.json
+ml/data/processed/ocr_component_results_current.json
+
+# Project-local verification runtime and model caches
+.runtime311/
+.runtime_cache/
+ml/benchmarks/
+
+# Downloaded vehicle sample and private training derivatives
+indian-vehicle-dataset/
+ml/data/vehicle_sample*/
+ml/models/vehicle_runs/
