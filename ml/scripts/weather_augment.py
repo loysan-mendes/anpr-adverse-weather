@@ -158,11 +158,23 @@ DEGRADATIONS = {
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--manifest", default=str(MANIFEST_PATH))
+    parser.add_argument("--manifest-out", type=Path,
+                        default=ML_DIR / "data/processed/augmented_manifest.json")
+    parser.add_argument("--preview-out", type=Path,
+                        default=ML_DIR / "data/processed/augmentation_preview.png")
+    parser.add_argument("--allow-unverified-clean", action="store_true",
+                        help="Explicitly assume unverified source images are clean for a synthetic experiment")
     parser.add_argument("--out_dir", default=str(OUT_DIR))
     parser.add_argument("--severities", nargs="+", default=SEVERITIES)
     args = parser.parse_args()
 
     entries = load_manifest(args.manifest)
+    if not args.allow_unverified_clean and any(
+        entry.get("weather_labels_verified") is False
+        for entry in entries
+    ):
+        raise ValueError("Sources have no verified clean-weather labels. Select reviewed clear images, "
+                         "or explicitly use --allow-unverified-clean for an experimental assumption.")
 
     out_dir = Path(args.out_dir)
     clear_dir = out_dir / "clear"
@@ -177,6 +189,12 @@ def main():
         if img is None:
             raise FileNotFoundError(img_path)
 
+        inherited = {key: entry[key] for key in (
+            "leakage_group", "duplicate_source_sha256", "annotation_scope",
+            "full_image_labels_verified", "weather_labels_verified") if key in entry}
+        if entry.get("pixel_sha256"):
+            inherited["source_pixel_sha256"] = entry["pixel_sha256"]
+
         img_resized, boxes_resized, scale = resize_with_boxes(img, entry["boxes"])
         h, w = img_resized.shape[:2]
 
@@ -185,6 +203,7 @@ def main():
         clear_path = clear_dir / clear_name
         cv2.imwrite(str(clear_path), img_resized, [cv2.IMWRITE_JPEG_QUALITY, 95])
         augmented_manifest.append({
+            **inherited,
             "image_path": clear_path.relative_to(ML_DIR).as_posix(),
             "width": w, "height": h,
             "boxes": boxes_resized,
@@ -207,6 +226,7 @@ def main():
                 cv2.imwrite(str(out_path), degraded, [cv2.IMWRITE_JPEG_QUALITY, 95])
 
                 augmented_manifest.append({
+                    **inherited,
                     "image_path": out_path.relative_to(ML_DIR).as_posix(),
                     "width": w, "height": h,
                     "boxes": boxes_resized,
@@ -221,7 +241,8 @@ def main():
                 if key not in preview_samples:
                     preview_samples[key] = degraded
 
-    manifest_out = ML_DIR / "data" / "processed" / "augmented_manifest.json"
+    manifest_out = args.manifest_out
+    manifest_out.parent.mkdir(parents=True, exist_ok=True)
     with open(manifest_out, "w") as f:
         json.dump(augmented_manifest, f, indent=2)
 
@@ -244,7 +265,8 @@ def main():
     for ax in axes[len(keys):]:
         ax.axis("off")
     plt.tight_layout()
-    preview_path = ML_DIR / "data" / "processed" / "augmentation_preview.png"
+    preview_path = args.preview_out
+    preview_path.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(preview_path, dpi=120)
     print(f"Saved preview grid -> {preview_path}")
 

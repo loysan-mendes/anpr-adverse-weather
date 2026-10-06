@@ -1,0 +1,174 @@
+{
+  "review_date": "2026-10-02",
+  "checkpoint_sha256": "42e94af496c357310f27d048a7c492a2d257a9b4ee1c0a63a2a02042aab28b32",
+  "method": "Assistant visual review of six representative unmatched detections and supplied-target regressions",
+  "scope": "Development failure diagnosis; no independent text or complete-scene certification",
+  "prepared_labels_changed": false,
+  "full_scene_annotations_verified": false,
+  "historical_representative_reviews": [
+    {
+      "review_id": "U01",
+      "image_path": "data/indian_plates/balanced/builds/21a8846051c43b1b26ac/images/val/00285_ae1f1e964ff73aa3.jpg",
+      "source_id": "voc_no_text:Datacluster_number_plates (86)",
+      "condition": "lowlight",
+      "severity": "severe",
+      "prediction": {
+        "box": [
+          67.4886474609375,
+          170.141845703125,
+          1244.4156494140625,
+          960.0
+        ],
+        "confidence": 0.578484058380127
+      },
+      "visual_category": "overlapping_target_plate",
+      "note": "A wide box includes the same motorcycle plate and background; target overlap is below the matching cutoff."
+    },
+    {
+      "review_id": "U02",
+      "image_path": "data/indian_plates/balanced/builds/21a8846051c43b1b26ac/images/val/00285_ae1f1e964ff73aa3.jpg",
+      "source_id": "voc_no_text:Datacluster_number_plates (86)",
+      "condition": "lowlight",
+      "severity": "severe",
+      "prediction": {
+        "box": [
+          40.32025146484375,
+          311.2286071777344,
+          886.2185668945312,
+          846.3270263671875
+        ],
+        "confidence": 0.4247789680957794
+      },
+      "visual_category": "overlapping_target_plate",
+      "note": "Another box includes the same target plate; this is localization/duplicate behavior, not proof of a non-plate detection."
+    },
+    {
+      "review_id": "U03",
+      "image_path": "data/indian_plates/balanced/builds/21a8846051c43b1b26ac/images/val/00285_ae1f1e964ff73aa3.jpg",
+      "source_id": "voc_no_text:Datacluster_number_plates (86)",
+      "condition": "lowlight",
+      "severity": "severe",
+      "prediction": {
+        "box": [
+          71.9886474609375,
+          175.4835205078125,
+          1280.0,
+          960.0
+        ],
+        "confidence": 0.2792266607284546
+      },
+      "visual_category": "overlapping_target_plate",
+      "note": "Another differently sized box includes the same target plate."
+    },
+    {
+      "review_id": "U04",
+      "image_path": "data/indian_plates/balanced/builds/21a8846051c43b1b26ac/images/val/00313_968cffdfaa1e6b82.jpg",
+      "source_id": "voc_with_text:dc_bus_image_000033_XUH0eV452t",
+      "condition": "haze",
+      "severity": "mild",
+      "prediction": {
+        "box": [
+          303.6351318359375,
+          643.609130859375,
+          479.4791259765625,
+          685.496826171875
+        ],
+        "confidence": 0.2869848608970642
+      },
+      "visual_category": "target_plate_low_box_overlap",
+      "note": "The wide bus-front crop contains its target registration; the box does not meet the IoU threshold. No text is newly certified."
+    },
+    {
+      "review_id": "U05",
+      "image_path": "data/indian_plates/balanced/builds/21a8846051c43b1b26ac/images/val/00325_c121d924b992f46c.jpg",
+      "source_id": "voc_with_text:dc_bus_image_000039_9NispLHmAo",
+      "condition": "clear",
+      "severity": "none",
+      "prediction": {
+        "box": [
+          183.2943115234375,
+          637.9852294921875,
+          240.26470947265625,
+          674.5357666015625
+        ],
+        "confidence": 0.7546381950378418
+      },
+      "visual_category": "unannotated_visible_bus_plate",
+      "note": "A visible bus plate is detected, while this scene supplies only the car target annotation."
+    },
+    {
+      "review_id": "U06",
+      "image_path": "data/indian_plates/balanced/builds/21a8846051c43b1b26ac/images/val/00332_58c0c7677e4baa67.jpg",
+      "source_id": "voc_with_text:dc_bus_image_000039_9NispLHmAo",
+      "condition": "blur",
+      "severity": "mild",
+      "prediction": {
+        "box": [
+          181.5126953125,
+          636.1807861328125,
+          240.44610595703125,
+          673.03759765625
+        ],
+        "confidence": 0.4111861288547516
+      },
+      "visual_category": "unannotated_visible_bus_plate",
+      "note": "A blurred variant of the same unannotated bus plate; text is not independently legible."
+    }
+  ],
+  "newly_accepted_label_disagreements": [
+    {
+      "review_id": "N01",
+      "source_relative": "State-wise_OLX/AP/AP16.jpg",
+      "image_sha256": "915a275817108a38574c44a934fed64f09c2fd2932a761b89b390f3c36673957",
+      "expected": "AP39GR3492",
+      "accepted": "AP39GB3492",
+      "before_outcome": "wrong_uncertain",
+      "visual_note": "Low-resolution R/B disagreement; supplied text is retained without claiming an independently verified transcription."
+    },
+    {
+      "review_id": "N02",
+      "source_relative": "video_images/video3_1350.jpg",
+      "image_sha256": "f9140fe707bd7c5c197315dfd1e4d8da6c27080d6d8b0eeb90326754988f3679",
+      "expected": "MH02CL4017",
+      "accepted": "HO2CL4017",
+      "before_outcome": "wrong_uncertain",
+      "visual_note": "The accepted prefix drops characters from the source MH02; the crop contains faint leading characters."
+    },
+    {
+      "review_id": "N03",
+      "source_relative": "video_images/video3_1750.jpg",
+      "image_sha256": "994a50a09ba5cc4b022c9947e5663515d67a4c655be158b9d3911fb9df36191a",
+      "expected": "MH02BT6482",
+      "accepted": "WH02BT6482",
+      "before_outcome": "wrong_uncertain",
+      "visual_note": "The accepted WH prefix disagrees with visible/source MH. The repeated source plate still has an I/T transcription ambiguity, which is not resolved here."
+    },
+    {
+      "review_id": "N04",
+      "source_relative": "video_images/video3_310.jpg",
+      "image_sha256": "a94fcbcee63deebfe9ddfc0b99c3437b6a4821946d2497b202e7374eedbf92fc",
+      "expected": "MH14FS5229",
+      "accepted": "MH14FS5223",
+      "before_outcome": "wrong_uncertain",
+      "visual_note": "Severe blur limits independent adjudication of the final 9/3; this remains a disagreement against supplied text."
+    },
+    {
+      "review_id": "N05",
+      "source_relative": "video_images/video3_600.jpg",
+      "image_sha256": "bbbefd076d8afd426199b2c41d42f9f18ed23eb0465d16eb0d694f48b07c1e07",
+      "expected": "MH02ER9194",
+      "accepted": "HO2ER9194",
+      "before_outcome": "wrong_uncertain",
+      "visual_note": "Accepted HO2 omits/corrupts leading MH02 characters on the angled plate."
+    },
+    {
+      "review_id": "N06",
+      "source_relative": "video_images/video3_640.jpg",
+      "image_sha256": "b7246e3f987428eba0b53b56063e751134464ded9c0f5e690710917fc9c30530",
+      "expected": "MH02ER9194",
+      "accepted": "HO2ER9194",
+      "before_outcome": "wrong_uncertain",
+      "visual_note": "Another view of the same registration shows the same accepted leading-character failure."
+    }
+  ]
+}

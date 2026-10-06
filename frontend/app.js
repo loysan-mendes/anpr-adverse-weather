@@ -77,6 +77,9 @@ function render() {
     button.setAttribute('aria-pressed','false');
     button.onclick=()=>{ selected=index; document.querySelectorAll('.plate').forEach(n=>n.classList.remove('selected')); document.querySelectorAll('.plate-main').forEach(n=>n.setAttribute('aria-pressed','false'));card.classList.add('selected');button.setAttribute('aria-pressed','true');draw();};
     card.append(button,element('div',`OCR ${percent(plate.ocr_confidence)} · Detection ${percent(plate.detection_confidence)} · ${plate.ocr_source || 'original'} view${plate.status !== 'accepted' ? ' · Proposed text only' : ''}`,'plate-meta'));
+    if (plate.review_reason === 'low_final_ocr_confidence') {
+      card.append(element('div','Needs review: reading confidence is too low for automatic acceptance.','plate-meta'));
+    }
     const vehicleLabel = plate.vehicle_match_status === 'matched'
       ? `Vehicle: ${plate.vehicle_type} · V${plate.vehicle_id} · ${percent(plate.vehicle_confidence)}`
       : `Vehicle: unknown · Needs review (${(plate.vehicle_match_status || 'unmatched').replaceAll('_',' ')})`;

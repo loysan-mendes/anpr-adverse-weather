@@ -8,7 +8,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
-from dataset_utils import load_manifest, source_id, image_path, provenance
+from dataset_utils import load_manifest, source_id, image_path, provenance, leakage_group
 from image_ops import box_iou
 from model_artifacts import sha256_file, atomic_json, resolve_detector
 from plate_validator import clean
@@ -18,7 +18,8 @@ ML_DIR = Path(__file__).resolve().parents[1]
 
 def collect_seen(checkpoints, historical_manifest, root=ML_DIR):
     """Older checkpoints have no provenance: conservatively exclude the old corpus."""
-    combined = {"source_ids": set(), "image_sha256": set(), "source_sha256": set()}
+    combined = {"source_ids": set(), "image_sha256": set(), "source_sha256": set(),
+                "leakage_groups": set(), "pixel_sha256": set()}
     fallback = None
     for checkpoint in checkpoints:
         checkpoint = Path(checkpoint)
@@ -45,10 +46,16 @@ def check_independent(entries, seen, root=ML_DIR):
         path = image_path(entry, root)
         if not path.is_file():
             raise FileNotFoundError(path)
+        if entry.get("full_image_labels_verified") is False or entry.get("annotation_scope") == "provided_target_only":
+            raise ValueError(f"Full-image labels are not verified; use component diagnostics or complete annotations: {path}")
         if entry.get("split") in {"train", "val"}:
             raise ValueError(f"Evaluation entry is marked {entry['split']}: {path}")
         if (source_id(entry) in seen["source_ids"] or sha256_file(path) in known_hashes
-                or entry.get("source_sha256") in known_hashes):
+                or entry.get("source_sha256") in known_hashes
+                or any(digest in known_hashes for digest in entry.get("duplicate_source_sha256", []))
+                or leakage_group(entry) in seen.get("leakage_groups", set())
+                or entry.get("pixel_sha256") in seen.get("pixel_sha256", set())
+                or entry.get("source_pixel_sha256") in seen.get("pixel_sha256", set())):
             raise ValueError(f"Test overlaps training/model-selection data: {path}")
         for box in entry["boxes"]:
             if not box.get("text") or not clean(box["text"]):

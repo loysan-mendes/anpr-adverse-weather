@@ -1,0 +1,458 @@
+{
+  "review_date": "2026-10-01",
+  "review_method": "Assistant visual inspection of full images and target crops",
+  "selection_method": "Fixed hash ordering before pipeline inference; 12 OLX, 8 Google, one frame from each of 5 video groups",
+  "selection_sha256": "4fab14dbd0c63aa7ea142457f06b1ff56a49d8bf3353ba42b3de965e50b0cacf",
+  "scope": "Target transcription pilot only; no certification of complete scene labels or independent human verification",
+  "counts": {
+    "selected": 25,
+    "visually_consistent": 24,
+    "limited_legibility": 1
+  },
+  "prepared_labels_changed": false,
+  "reviews": [
+    {
+      "pilot_id": "P01",
+      "source_relative": "State-wise_OLX/JK/JK17.jpg",
+      "image_sha256": "faa862fb30a0ba24f84506ce773f2eea82ba8ec7d26bd8d2a013ddb34e216d5c",
+      "supplied_text": "JK02AS3888",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P02",
+      "source_relative": "State-wise_OLX/AP/AP14.jpg",
+      "image_sha256": "fe808e62090784eab0527801abfb11a5f6ec8cdf4f9701b0c4f5088618c36d30",
+      "supplied_text": "AP10AS3445",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P03",
+      "source_relative": "State-wise_OLX/PY/PY4.jpg",
+      "image_sha256": "f42b63213c96598cc780d46f1f26a6cd9fffe4206cf4135ba27a79e5bf71d282",
+      "supplied_text": "PY02S7828",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P04",
+      "source_relative": "State-wise_OLX/GJ/GJ14.jpg",
+      "image_sha256": "ae3c9694b10d17ba71fb90aaeb1e7d136e672602186f198002b4ae4c9e1e3da4",
+      "supplied_text": "GJ06DG9355",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P05",
+      "source_relative": "State-wise_OLX/AP/AP1.jpg",
+      "image_sha256": "455f3b42dcaaa96104c128a70626e9645be28c894063470757667899ba56567f",
+      "supplied_text": "AP05BY7799",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P06",
+      "source_relative": "State-wise_OLX/HP/HP4.jpg",
+      "image_sha256": "a6ff9643bbf0703738287ae9e5a4737f1c73c867123151f4237f54c2a817fc08",
+      "supplied_text": "HP48B2252",
+      "transcription_review": "limited_legibility",
+      "note": "Small, blurred plate: source text appears plausible but digits are not independently certain.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P07",
+      "source_relative": "State-wise_OLX/ML/ML8.jpg",
+      "image_sha256": "45209918156803a66babaf357219c550bc8fadb36bfa89aaf133e9d061c425e8",
+      "supplied_text": "ML087084",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P08",
+      "source_relative": "State-wise_OLX/TR/TR3.jpg",
+      "image_sha256": "c6d9a7361d4cb7ed22d6e0e7d9e396e836bd5e5906ef78fee9645e3ceb5e32eb",
+      "supplied_text": "TR02L0569",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P09",
+      "source_relative": "State-wise_OLX/AP/AP40.jpg",
+      "image_sha256": "59e71c3b155afe7efe1eece854ad1bf8d3d58d93b9f01bb92ad5c6284af42a34",
+      "supplied_text": "AP04BA4464",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P10",
+      "source_relative": "State-wise_OLX/PY/PY7.jpg",
+      "image_sha256": "71f246690a7e70845780e86b122ea431149b5f38cc2fa5e8ca934d60019e57eb",
+      "supplied_text": "PY036993",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P11",
+      "source_relative": "State-wise_OLX/MH/MH21.jpg",
+      "image_sha256": "577d72e68ecb252700f3fe0ddacfceb0b66b4c63bc65834b64df7dbbabdca00d",
+      "supplied_text": "MH04DR8508",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P12",
+      "source_relative": "State-wise_OLX/GA/GA4.jpg",
+      "image_sha256": "26608abb96b8b7fa43d459060db875f4610de68c5c0bf24bb872c7d78eddda9d",
+      "supplied_text": "GA01C2098",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P13",
+      "source_relative": "google_images/e1d7921f-5e58-46c7-b4f9-9fd4585508f1___IMG_9072.jpg.jpeg",
+      "image_sha256": "e904d9b7c54bef7ea50d44005f0f515616dbd6d10d45fc6d39fb01090a5fc351",
+      "supplied_text": "GJ1KF1111",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P14",
+      "source_relative": "google_images/319f51dc-9db2-4977-a43d-09561cdd54ab___1415806d1442489743t-raging-red-rover-r3-my-mahindra-scorpio-s10-4x4-nudge-guard.jpg.jpeg",
+      "image_sha256": "0383574f1442ae9566a898260843761087157d4980105f4819753b615ce674b1",
+      "supplied_text": "DL12CG6648",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P15",
+      "source_relative": "google_images/712ecd95-753f-4d67-ae42-e8b5254e6e94___28iam53.jpg.jpeg",
+      "image_sha256": "b47a75282c30bcf1e215502f82381d917052dec1015595eeca6c1f90730913ca",
+      "supplied_text": "MH02BK9793",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P16",
+      "source_relative": "google_images/18d2b870-7817-46da-a59a-6406c1b472c9___1033.png",
+      "image_sha256": "a52fc0d1e148c396638712a8fb8b2827fbc6e07e5b65f053632e620d16e677e8",
+      "supplied_text": "KA51MJ8156",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P17",
+      "source_relative": "google_images/93b6319a-5886-48d8-8a69-07d586751553___2014-VW-Polo-facelift-first-drive-rear-number-plate.jpg.jpeg",
+      "image_sha256": "ff3ea7f99b2c01bb03b0ad6ed943f2214303fb32ca1e965a8f8bc98feb774caa",
+      "supplied_text": "TN02TC0143",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P18",
+      "source_relative": "google_images/car-wbs-CH01AN0001_00000.png",
+      "image_sha256": "20e9edb3fe322e13bb0028c22f2eac0487643efc28e210e6a3738bc2e39b1e97",
+      "supplied_text": "CH01AN0001",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P19",
+      "source_relative": "google_images/092c497e-623d-499d-822a-4b01c657389b___3e7fd381-0ae5-4421-8a70-279ee0ec1c61_nissan-terrano-rear-left-rim.jpg",
+      "image_sha256": "8d3f452b6e3ac5f31905e0e4daa04e21c2153c060cc12e2544de2d051d3d1d28",
+      "supplied_text": "KL63C8800",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P20",
+      "source_relative": "google_images/bff789cd-2d58-4399-a55e-33be55f313e3___IMG_0472.jpg.jpeg",
+      "image_sha256": "07c3178de3e42b05975af2323872fd8a06d1a372ad14bd538119dd49b05b0166",
+      "supplied_text": "MH02CT2727",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P21",
+      "source_relative": "video_images/video2_0.jpg",
+      "image_sha256": "f4274815df1522457e5906c2dbcc4c4cfe822819aad7ac6a8b9cec0d9b2450a5",
+      "supplied_text": "MH02EK4399",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P22",
+      "source_relative": "video_images/car-ybs-MH43BP8173_00000.png",
+      "image_sha256": "ed4b24752deea094d1eb3ecfd8f3393a565ccdcc48da3dea7f301e8c538d0ea9",
+      "supplied_text": "MH43BP8173",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P23",
+      "source_relative": "video_images/car-wbs-MH46BV0688_00000.png",
+      "image_sha256": "ac9c4c49fc6efaf53e69225211bf133d01838ce3b3a8e3a04e566b7fe85c1f01",
+      "supplied_text": "MH46BV0688",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P24",
+      "source_relative": "video_images/car-wbs-MH43BU2401_00000.png",
+      "image_sha256": "cb3f6ad2a321d08a87dd8bac0c04f69585172f3ef93b23324bc4b5ad1f8bb9fd",
+      "supplied_text": "MH43BU2401",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    },
+    {
+      "pilot_id": "P25",
+      "source_relative": "video_images/car-wbs-MH43AF5037_00000.png",
+      "image_sha256": "bfb8e6a11276414bcdfad7cddb4a3771cefbf0cb6704fb6c27eecfe49314c6d3",
+      "supplied_text": "MH43AF5037",
+      "transcription_review": "visually_consistent",
+      "note": "Supplied normalized target text agrees with visible characters in the review image.",
+      "full_image_labels_verified": false
+    }
+  ],
+  "observed_candidate_disagreements": [
+    {
+      "source_relative": "State-wise_OLX/AP/AP23.jpg",
+      "image_sha256": "6fa897ff2e8b4d0b90372082960f97dec756c06d138ec92d416e8ecdadf17a0f",
+      "supplied_text": "AP39DL3537",
+      "accepted_text": "AP39DU3537",
+      "failure_tags": [
+        "character_substitution"
+      ],
+      "label_action": "none; retain source annotations and diagnostic counts",
+      "review_scope": "Visual inspection and logged OCR evidence; uncertain I/T series remains unresolved"
+    },
+    {
+      "source_relative": "State-wise_OLX/PY/PY7.jpg",
+      "image_sha256": "71f246690a7e70845780e86b122ea431149b5f38cc2fa5e8ca934d60019e57eb",
+      "supplied_text": "PY036993",
+      "accepted_text": "PY03G993",
+      "failure_tags": [
+        "selector_changed_correct_literal_ocr"
+      ],
+      "label_action": "none; retain source annotations and diagnostic counts",
+      "review_scope": "Visual inspection and logged OCR evidence; uncertain I/T series remains unresolved"
+    },
+    {
+      "source_relative": "video_images/car-wbs-MH43AF5037_00000.png",
+      "image_sha256": "bfb8e6a11276414bcdfad7cddb4a3771cefbf0cb6704fb6c27eecfe49314c6d3",
+      "supplied_text": "MH43AF5037",
+      "accepted_text": "MH3AF5037",
+      "failure_tags": [
+        "district_digit_dropped"
+      ],
+      "label_action": "none; retain source annotations and diagnostic counts",
+      "review_scope": "Visual inspection and logged OCR evidence; uncertain I/T series remains unresolved"
+    },
+    {
+      "source_relative": "video_images/video2_3030.jpg",
+      "image_sha256": "42295f08f81cca356728000e8aa347f6ae8128e162fb3d4302155b4f771a73d8",
+      "supplied_text": "MH02EP4454",
+      "accepted_text": "MH02IP4454",
+      "failure_tags": [
+        "character_substitution"
+      ],
+      "label_action": "none; retain source annotations and diagnostic counts",
+      "review_scope": "Visual inspection and logged OCR evidence; uncertain I/T series remains unresolved"
+    },
+    {
+      "source_relative": "video_images/video2_3370.jpg",
+      "image_sha256": "a98228d64623e823e0cfbc88b3f25bcb61cd8325d72623c1cdd1300827ca5b5b",
+      "supplied_text": "MH03BS8519",
+      "accepted_text": "WH03BS8519",
+      "failure_tags": [
+        "state_prefix_loss_or_substitution"
+      ],
+      "label_action": "none; retain source annotations and diagnostic counts",
+      "review_scope": "Visual inspection and logged OCR evidence; uncertain I/T series remains unresolved"
+    },
+    {
+      "source_relative": "video_images/video2_3440.jpg",
+      "image_sha256": "4254dc627de2f6f2486177a5ecc077a85859b700c65dfec037865c94160cd41e",
+      "supplied_text": "MH47AG4326",
+      "accepted_text": "MH7AG4326",
+      "failure_tags": [
+        "district_digit_dropped"
+      ],
+      "label_action": "none; retain source annotations and diagnostic counts",
+      "review_scope": "Visual inspection and logged OCR evidence; uncertain I/T series remains unresolved"
+    },
+    {
+      "source_relative": "video_images/video2_4190.jpg",
+      "image_sha256": "7edea633db7778e3edc3dece500202ddada9008878c93fd5bd319c051dead957",
+      "supplied_text": "MH02BT6482",
+      "accepted_text": "MH02BI6482",
+      "failure_tags": [
+        "series_I_T_needs_independent_confirmation"
+      ],
+      "label_action": "none; retain source annotations and diagnostic counts",
+      "review_scope": "Visual inspection and logged OCR evidence; uncertain I/T series remains unresolved"
+    },
+    {
+      "source_relative": "video_images/video2_4370.jpg",
+      "image_sha256": "1e6c5321d4da28ac1ba4f83d628825cce617e179c209722cc648d890a8b0b4a5",
+      "supplied_text": "MH01AV8814",
+      "accepted_text": "WH01AY8814",
+      "failure_tags": [
+        "state_prefix_loss_or_substitution"
+      ],
+      "label_action": "none; retain source annotations and diagnostic counts",
+      "review_scope": "Visual inspection and logged OCR evidence; uncertain I/T series remains unresolved"
+    },
+    {
+      "source_relative": "video_images/video2_4980.jpg",
+      "image_sha256": "ef207d184a0284d6271cb9c6832cd9b23819e26b297a427195fe6b7ce1600b2e",
+      "supplied_text": "MH02BT6482",
+      "accepted_text": "MH02BI6482",
+      "failure_tags": [
+        "series_I_T_needs_independent_confirmation"
+      ],
+      "label_action": "none; retain source annotations and diagnostic counts",
+      "review_scope": "Visual inspection and logged OCR evidence; uncertain I/T series remains unresolved"
+    },
+    {
+      "source_relative": "video_images/video2_820.jpg",
+      "image_sha256": "38cf280f70257ad6d7bae33dad6a717ea41ea0f6de36e901193270961ddf97aa",
+      "supplied_text": "MH02BR4503",
+      "accepted_text": "NN02BR4503",
+      "failure_tags": [
+        "state_prefix_loss_or_substitution"
+      ],
+      "label_action": "none; retain source annotations and diagnostic counts",
+      "review_scope": "Visual inspection and logged OCR evidence; uncertain I/T series remains unresolved"
+    },
+    {
+      "source_relative": "video_images/video3_1080.jpg",
+      "image_sha256": "bd87bd879e0c5f74b5c8aa7c7dcc6d6227ff1b4445eace127b8d892c4b225665",
+      "supplied_text": "MH02EE8407",
+      "accepted_text": "NH02EE8407",
+      "failure_tags": [
+        "state_prefix_loss_or_substitution"
+      ],
+      "label_action": "none; retain source annotations and diagnostic counts",
+      "review_scope": "Visual inspection and logged OCR evidence; uncertain I/T series remains unresolved"
+    },
+    {
+      "source_relative": "video_images/video3_1190.jpg",
+      "image_sha256": "c7a18ca47cb4b78bbb7b3d58716e1f9d4e519a48e1b0d140f5942d57a7ea8ca1",
+      "supplied_text": "MH02BT6482",
+      "accepted_text": "MB02BT6482",
+      "failure_tags": [
+        "state_prefix_loss_or_substitution",
+        "series_I_T_needs_independent_confirmation"
+      ],
+      "label_action": "none; retain source annotations and diagnostic counts",
+      "review_scope": "Visual inspection and logged OCR evidence; uncertain I/T series remains unresolved"
+    },
+    {
+      "source_relative": "video_images/video3_1220.jpg",
+      "image_sha256": "655589ee42ef068ee4f2f0ac4fdf6bea341f2be70808924c552ef096c0706ba9",
+      "supplied_text": "MH02BT6482",
+      "accepted_text": "KH02BT6482",
+      "failure_tags": [
+        "state_prefix_loss_or_substitution",
+        "series_I_T_needs_independent_confirmation"
+      ],
+      "label_action": "none; retain source annotations and diagnostic counts",
+      "review_scope": "Visual inspection and logged OCR evidence; uncertain I/T series remains unresolved"
+    },
+    {
+      "source_relative": "video_images/video3_1870.jpg",
+      "image_sha256": "a91f56214cb2b809545f91483e2aab8f38aa7cc30d588a7911614eedf0a83f81",
+      "supplied_text": "MH02EU4077",
+      "accepted_text": "ME02EU4077",
+      "failure_tags": [
+        "state_prefix_loss_or_substitution"
+      ],
+      "label_action": "none; retain source annotations and diagnostic counts",
+      "review_scope": "Visual inspection and logged OCR evidence; uncertain I/T series remains unresolved"
+    },
+    {
+      "source_relative": "video_images/video3_580.jpg",
+      "image_sha256": "dd73944d89d47768ae3659c0e197c08f930a8ef0fd06ea50fb52bf1cd2d46914",
+      "supplied_text": "MH02ER9194",
+      "accepted_text": "HO2ER9194",
+      "failure_tags": [
+        "state_prefix_loss_or_substitution"
+      ],
+      "label_action": "none; retain source annotations and diagnostic counts",
+      "review_scope": "Visual inspection and logged OCR evidence; uncertain I/T series remains unresolved"
+    },
+    {
+      "source_relative": "video_images/video3_590.jpg",
+      "image_sha256": "2c15d64d4eef28363d6431532169b15a8ac016fd9b138d3b6261a2ff5f9ebdc6",
+      "supplied_text": "MH02ER9194",
+      "accepted_text": "NH02ER9194",
+      "failure_tags": [
+        "state_prefix_loss_or_substitution"
+      ],
+      "label_action": "none; retain source annotations and diagnostic counts",
+      "review_scope": "Visual inspection and logged OCR evidence; uncertain I/T series remains unresolved"
+    },
+    {
+      "source_relative": "video_images/video3_610.jpg",
+      "image_sha256": "afb389bc8fc4f71f2017ae7a5afaa1fbc5e2b3aa8caf5438a74dff6128f36cfb",
+      "supplied_text": "MH02ER9194",
+      "accepted_text": "HO2ER9194",
+      "failure_tags": [
+        "state_prefix_loss_or_substitution"
+      ],
+      "label_action": "none; retain source annotations and diagnostic counts",
+      "review_scope": "Visual inspection and logged OCR evidence; uncertain I/T series remains unresolved"
+    },
+    {
+      "source_relative": "video_images/video3_620.jpg",
+      "image_sha256": "6cb47751a894f0b46b0a04e79fc4d311e8011c46a6102fb4aa96fc44f394dc82",
+      "supplied_text": "MH02ER9194",
+      "accepted_text": "HO2ER9194",
+      "failure_tags": [
+        "state_prefix_loss_or_substitution"
+      ],
+      "label_action": "none; retain source annotations and diagnostic counts",
+      "review_scope": "Visual inspection and logged OCR evidence; uncertain I/T series remains unresolved"
+    }
+  ],
+  "unmatched_accepted_prediction_review": {
+    "source_relative": "video_images/video3_650.jpg",
+    "accepted_text": "MH02ER9194",
+    "finding": "Second visible side registration marking agrees with the reading; source target labels omit this marking",
+    "counted_as_false_positive": false
+  },
+  "legacy_regression_review": {
+    "missed_supplied_targets": 9,
+    "findings": [
+      "Five unmatched targets in a scene with multiple vehicles and small plates.",
+      "Other misses include a bus, autorickshaw, truck and motorcycle plate.",
+      "The historical KL34F annotation is a partial visible transcription."
+    ],
+    "image_orientation": "Review rendering uses EXIF transpose to match OpenCV input coordinates",
+    "source_manifest_changed": false
+  }
+}

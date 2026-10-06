@@ -1,0 +1,43 @@
+{
+  "source_url": "https://www.kaggle.com/datasets/saisirishan/indian-vehicle-dataset",
+  "dataset_sha256": "9f89024da5fcdb341643c4e30e92375452b7b2da4818e1d878f27d54a24b0de6",
+  "review_date": "2026-09-30",
+  "review_scope": "All structural records; 66 distinct flagged transcriptions viewed as full images and crops. Source transcriptions outside those examples remain source-provided.",
+  "exclude_labels": {
+    "TERRANO": "vehicle_model_display_plate",
+    "CRETA": "vehicle_model_display_plate",
+    "DUSTER": "vehicle_model_display_plate",
+    "W0BNP300": "foreign_plate_outside_indian_corpus"
+  },
+  "detection_only_labels": {
+    "DEVANAGRI": "non_latin_script_without_transcription",
+    "BLUR": "unreadable_transcription_placeholder",
+    "KA19TR02": "annotation_omits_visible_temporary_plate_suffix",
+    "DL6CAB123X": "illustrative_plate_not_verified_registration",
+    "KL01KLKL01": "nonstandard_or_masked_registration",
+    "KL01KL0KL01": "nonstandard_or_masked_registration",
+    "ASM1634": "masked_registration_fields",
+    "UP80CR00": "masked_registration_fields",
+    "UP65CM21149": "handwritten_overprinted_text_requires_individual_review",
+    "MH14TCP237": "blurred_text_not_visually_verifiable",
+    "HD02NP0": "ambiguous_or_incomplete_transcription",
+    "AN01M4M": "ambiguous_character_transcription",
+    "MH02AJ344": "cropped_or_ambiguous_trailing_digit",
+    "DL9C0S1537": "ambiguous_zero_or_letter_in_series",
+    "ML1032811": "ambiguous_three_or_letter_in_series",
+    "DL3CCQ0107": "ambiguous_q_or_zero_in_repeated_frames"
+  },
+  "identity_aliases": {
+    "KL01KL0KL01": "KL01KLKL01"
+  },
+  "missing_images": ["State-wise_OLX/MH/MH5.xml"],
+  "filename_repairs": {"State-wise_OLX/ML/ML39.xml": "ML39.jpg"},
+  "dimension_repairs": {
+    "State-wise_OLX/AN/AN2.xml": {"declared": [272, 363], "actual": [271, 325]},
+    "State-wise_OLX/AN/AN6.xml": {"declared": [272, 363], "actual": [271, 306]}
+  },
+  "unannotated_variants": [
+    "google_images/car-wbs-MH20EE7598_00000.jpeg",
+    "google_images/car-wbs-TN99F2378_00000.jpeg"
+  ]
+}

@@ -115,6 +115,67 @@ Strong competing readings cause abstention. Ambiguous substitutions such as `0 -
 
 ## Prepare data and train
 
+### Newly supplied Indian plate dataset
+
+The audited Kaggle download in `new-indian-vehicle-dataset/` now has a separate
+preparation workflow. It reads plate text from XML object names, applies reviewed
+repairs, removes exact duplicates, and groups plate identities, video sequences
+and perceptually similar images before splitting. Source files remain intact.
+
+```powershell
+.\run_ml.ps1 ml/scripts/prepare_indian_plates.py
+```
+
+The prepared detector dataset has **1,644 images**: 1,150 train, 247 validation
+and 247 test. **1,621** have eligible source-provided OCR text; 23 unclear or
+masked cases retain detection labels only. The one-class YOLO configuration is
+`ml/data/indian_plates/data.yaml`; its current build pointer and manifests live
+in that directory. Preparation does not start training or activate weights.
+
+Additional observed plate layouts return review-only readings; unsupported
+literal OCR evidence is retained as a proposal. The acceptance policy remains
+conservative. Source transcriptions and annotation completeness are not all
+independently verified, so these manifests are explicitly blocked from being
+used as a complete full-image ANPR benchmark. See the [preparation record](docs/indian-plates-preparation.md)
+for validation, exclusions and the candidate training command.
+
+The isolated Indian plate candidate has completed 80 training epochs. Its
+reported validation mAP50 is 99.49% and mAP50-95 is 82.66%. The frozen
+candidate's held-out test mAP50 is 99.43% and mAP50-95 is 83.18%. See the
+[training results](docs/indian-plates-training-results.md) for the comparison
+with the current detector and the next evaluation steps. The active detector
+has not been replaced; these scores measure detection against supplied
+target boxes. The [full OCR pipeline development comparison](docs/indian-plates-pipeline-results.md)
+is now complete: exact accepted target recall on the new validation images
+rose from 59.11% to 63.56%, while the historical diagnostic regressed from
+16/25 to 13/25 correct accepted readings. The current detector remains active
+while source coverage is addressed. The [literal-reading fix and broader candidate preparation](docs/indian-plates-next-candidate.md)
+are now complete: the candidate preserves 157 correct accepted validation
+readings while reducing accepted label disagreements from 18 to 17. A separate
+combined detector dataset contains 1,272 training images, 338 validation
+images and the original 247 test images. The balanced candidate has now completed
+80 epochs. Its [development evaluation](docs/indian-plates-balanced-results.md)
+recovers historical detection coverage from 16/25 to 24/25 targets, but accepts
+152 correct Indian readings with 22 source-label disagreements, compared with
+the first candidate's 157 and 17. It remains inactive while OCR/crop reliability
+is addressed. Independent real-weather performance still needs evaluation.
+The [paired crop diagnostic and confidence replay](docs/ocr-diagnostic-next-steps.md)
+show that supplied crops offer only a small gain and recognition errors persist.
+The [final acceptance gate](docs/ocr-acceptance-policy-results.md) is now implemented:
+the pipeline defaults to 0.90 final OCR confidence and retains weaker readings
+as proposals for review. The active detector remains unchanged. Compare the prior
+policy with `--acceptance-min-confidence 0.80`; this is separate from detector `--conf`.
+When invoking YOLO directly, resolve the dataset YAML to an absolute path;
+Ultralytics 8.3.0 can resolve relative YAML filenames under its configured
+dataset-download directory. The training entry point already handles this.
+
+Weather augmentation can use separate `--manifest-out` and `--preview-out`
+paths and preserves related-image groups. This new corpus has no verified
+clear-weather labels: review clean references first, or explicitly supply
+`--allow-unverified-clean` for a synthetic experiment with that assumption.
+
+### Original corpus workflow
+
 Build the raw manifest **before** augmentation. The dataset must contain the annotation/image folders declared by `build_manifest.py`; a different downloaded dataset requires adapting those folder mappings. Missing input images and incomplete annotation matches are errors.
 
 ```powershell

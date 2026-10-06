@@ -43,6 +43,9 @@ def main():
     parser.add_argument("--patience", type=int, default=20,
                          help="early stopping: stop if val metric doesn't improve for N epochs")
     parser.add_argument("--name", default="plate_detector")
+    parser.add_argument("--no-activate", action="store_true",
+                        help="Keep the current inference detector while evaluating a candidate")
+    parser.add_argument("--workers", type=int, default=0)
     args = parser.parse_args()
 
     data_path = Path(args.data).resolve()
@@ -62,13 +65,14 @@ def main():
         project=str(RUN_PROJECT),
         name=args.name,
         seed=42,
+        workers=args.workers,
         # small-dataset-friendly augmentation: keep it, but not too aggressive
         # since our images already carry synthetic weather degradation
         mosaic=0.5,
         degrees=5.0,
         translate=0.1,
         scale=0.3,
-        fliplr=0.5,
+        fliplr=0.0,
     )
 
     # run final validation explicitly so metrics are printed clearly at the end
@@ -83,8 +87,11 @@ def main():
     best_weights = Path(model.trainer.best).resolve()
     seen_sources["checkpoint_sha256"] = sha256_file(best_weights)
     atomic_json(best_weights.with_suffix(".provenance.json"), seen_sources)
-    activate_detector(best_weights)
-    print(f"\nActive inference weights -> {best_weights}")
+    if not args.no_activate:
+        activate_detector(best_weights)
+        print(f"\nActive inference weights -> {best_weights}")
+    else:
+        print(f"\nCandidate weights -> {best_weights}")
     print(f"Training plots/results -> {run_dir}")
 
 

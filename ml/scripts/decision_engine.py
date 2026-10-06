@@ -14,6 +14,7 @@ from predict_quality import load_model as load_quality_model, predict as predict
 from unet_model import UNet
 from ocr_plate import recognize_plate_candidates
 from plate_validator import select_candidate, choose_reading, strong_reading
+from acceptance_policy import apply_acceptance_gate, validate_acceptance_confidence, DEFAULT_ACCEPTANCE_MIN_CONFIDENCE
 from vehicle_detector import detect_vehicles, associate_plates
 
 ML_DIR = Path(__file__).resolve().parents[1]
@@ -113,8 +114,10 @@ def read_crop(crop, source, use_upscale=True, profile="balanced"):
 
 
 def process_image(image_path, conf_threshold=0.25, weights=None, use_upscale=True,
-                  profile="balanced", imgsz=640, vehicle_weights=None):
+                  profile="balanced", imgsz=640, vehicle_weights=None,
+                  acceptance_min_confidence=DEFAULT_ACCEPTANCE_MIN_CONFIDENCE):
     started = time.perf_counter()
+    acceptance_min_confidence = validate_acceptance_confidence(acceptance_min_confidence)
     if not 0 < conf_threshold <= 1 or profile not in {"balanced", "exhaustive"} or imgsz < 32:
         raise ValueError("Invalid confidence, profile or image size")
     img = cv2.imread(str(image_path))
@@ -171,7 +174,7 @@ def process_image(image_path, conf_threshold=0.25, weights=None, use_upscale=Tru
             readings = readings + read_detection(detection, working_img, "restored")
         if not readings:
             continue
-        selected = choose_reading(readings)
+        selected = apply_acceptance_gate(choose_reading(readings), acceptance_min_confidence)
         x1, y1, x2, y2 = detection["box"]
         plates.append({"box": [x1, y1, x2, y2], "detection_confidence": detection["confidence"],
                        "crop_width_px": x2-x1, **selected, "validation_score": selected["format_score"], "readings": readings})
@@ -180,7 +183,7 @@ def process_image(image_path, conf_threshold=0.25, weights=None, use_upscale=Tru
             "vehicles": vehicles, "num_vehicles_detected": len(vehicles),
             "restoration_applied": restoration, "restoration_reason": "weather_and_uncertain_or_severe" if restoration else None,
             "num_plates_detected": len(plates), "num_plates_accepted": sum(p["status"] == "accepted" for p in plates),
-            "profile": profile, "stage_calls": calls,
+            "profile": profile, "acceptance_min_confidence": acceptance_min_confidence, "stage_calls": calls,
             "timings_seconds": {"quality_and_decode": quality_seconds, "vehicle_detection": vehicle_seconds,
                                 "total": time.perf_counter()-started}, "plates": plates}
 
@@ -194,9 +197,12 @@ def main():
     parser.add_argument("--no-upscale", action="store_true")
     parser.add_argument("--profile", choices=["balanced", "exhaustive"], default="balanced")
     parser.add_argument("--imgsz", type=int, default=640)
+    parser.add_argument("--acceptance-min-confidence", type=float, default=DEFAULT_ACCEPTANCE_MIN_CONFIDENCE,
+                        help="Final OCR confidence cutoff; lower readings retain their proposal for review")
     args = parser.parse_args()
     print(json.dumps(process_image(args.image, args.conf, args.weights, not args.no_upscale, args.profile, args.imgsz,
-                                   vehicle_weights=args.vehicle_weights), indent=2))
+                                   vehicle_weights=args.vehicle_weights,
+                                   acceptance_min_confidence=args.acceptance_min_confidence), indent=2))
 
 
 if __name__ == "__main__":

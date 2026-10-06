@@ -8,6 +8,9 @@ import re
 L2D = {"O": "0", "I": "1", "Z": "2", "S": "5", "B": "8", "G": "6", "Q": "0", "D": "0", "T": "7"}
 D2L = {digit: tuple(k for k, v in L2D.items() if v == digit) for digit in set(L2D.values())}
 TEMPLATES = ["LLDDLDDDD", "LLDDLLDDDD", "LLDLDDDD", "LLDLLDDDD", "LLDDDDDD", "LLDDLDDD"]
+# Additional layouts observed in the supplied corpus remain review-only until
+# independently calibrated. Match their literal text; do not invent padding.
+REVIEW_LAYOUT = re.compile(r"^[A-Z]{2}(?:\d{1,2}[A-Z]{1,3}\d{1,4}|\d{3,6})$")
 
 
 def clean(text):
@@ -42,6 +45,13 @@ def template_fits(text):
             base = 0.70 if template == "LLDDDDDD" else 1.0
             score = max(0.0, base - 0.08 * cost)
             fits[proposed] = max(score, fits.get(proposed, 0.0))
+    if REVIEW_LAYOUT.fullmatch(text):
+        fits[text] = max(fits.get(text, 0.0), 0.70)
+        # A plausible literal is evidence, even when its layout needs review.
+        # Do not replace its digits with letters to earn a higher format score.
+        for proposed in fits:
+            if proposed != text:
+                fits[proposed] = min(fits[proposed], max(0.0, fits[text] - 0.08))
     return fits
 
 
@@ -74,6 +84,19 @@ def order_regions(regions):
     return [r for row in rows for r in sorted(row, key=lambda r: r["box"][0])]
 
 
+def conflicting_literals(best, evidence, min_confidence=0.80, ambiguity_margin=0.08):
+    """Compare OCR confidence before layout preference can hide a disagreement."""
+    proposed = best.get("proposed_text", best.get("text", ""))
+    return sorted({item["text"] for item in evidence
+                   if item["text"] != proposed
+                   # Contiguous windows also produce fragments of a full read.
+                   # Those are not independent competing registrations.
+                   and item["text"] not in proposed and proposed not in item["text"]
+                   and item["ocr_confidence"] >= min_confidence
+                   and best["ocr_confidence"] - item["ocr_confidence"] < ambiguity_margin
+                   and item.get("omission_penalty", 0.0) == 0.0})
+
+
 def select_candidate(candidates, min_confidence=0.80, min_score=0.75, ambiguity_margin=0.08):
     regions = []
     for candidate in candidates:
@@ -85,32 +108,58 @@ def select_candidate(candidates, min_confidence=0.80, min_score=0.75, ambiguity_
         region["conf"] = max(0.0, min(1.0, confidence)) if math.isfinite(confidence) else 0.0
         regions.append(region)
     regions = order_regions(regions)
-    hypotheses = {}
+    hypotheses, literals = {}, {}
     for start in range(len(regions)):
         for end in range(start+1, len(regions)+1):
             parts = regions[start:end]
             text = "".join(r["text"] for r in parts)
-            if len(text) > 10:
+            if len(text) > 14:
                 break
             confidence = min(r["conf"] for r in parts)
             omitted = regions[:start] + regions[end:]
             penalty = 0.08 * sum(len(r["text"]) <= 4 for r in omitted)
+            if REVIEW_LAYOUT.fullmatch(text):
+                evidence = {"text": text, "ocr_confidence": confidence, "omission_penalty": penalty}
+                if text not in literals or confidence-penalty > literals[text]["ocr_confidence"]-literals[text]["omission_penalty"]:
+                    literals[text] = evidence
             for proposed, format_score in template_fits(text).items():
                 score = max(0.0, confidence * format_score - penalty)
-                item = {"text": proposed, "format_score": format_score, "ocr_confidence": confidence, "selection_score": score}
+                item = {"text": proposed, "raw_text": text,
+                        "literal_layout": proposed == text and bool(REVIEW_LAYOUT.fullmatch(text)),
+                        "format_score": format_score, "ocr_confidence": confidence, "selection_score": score}
                 if proposed not in hypotheses or score > hypotheses[proposed]["selection_score"]:
                     hypotheses[proposed] = item
     ranked = sorted(hypotheses.values(), key=lambda r: (-r["selection_score"], r["text"]))
     if not ranked:
+        # Preserve unusual literal OCR evidence for review. A plausible string
+        # is not proof of a registration, so this path cannot auto-accept it.
+        literal = "".join(region["text"] for region in regions)
+        if re.fullmatch(r"[A-Z]{2}[A-Z0-9]{3,12}", literal) and re.search(r"\d", literal):
+            confidence = min(region["conf"] for region in regions)
+            candidate = {"text": literal, "format_score": 0.0,
+                         "ocr_confidence": confidence, "selection_score": confidence * 0.4}
+            return {"plate_text": "", "proposed_text": literal, "status": "uncertain",
+                    "review_reason": "unsupported_layout", **{k: candidate[k] for k in
+                    ("format_score", "ocr_confidence", "selection_score")}, "alternatives": [candidate]}
         return {"plate_text": "", "proposed_text": "", "status": "unreadable", "format_score": 0.0,
                 "ocr_confidence": 0.0, "selection_score": 0.0, "alternatives": []}
     best = ranked[0]
     ambiguous = len(ranked) > 1 and best["selection_score"] - ranked[1]["selection_score"] < ambiguity_margin
+    conflicts = conflicting_literals(best, literals.values(), min_confidence, ambiguity_margin)
+    ambiguous = ambiguous or bool(conflicts)
     accepted = (not ambiguous and best["ocr_confidence"] >= min_confidence
                 and best["selection_score"] >= min_score and best["format_score"] >= 0.84)
-    return {"plate_text": best["text"] if accepted else "", "proposed_text": best["text"],
+    result = {"plate_text": best["text"] if accepted else "", "proposed_text": best["text"],
             "status": "accepted" if accepted else "uncertain",
-            **{k: best[k] for k in ("format_score", "ocr_confidence", "selection_score")}, "alternatives": ranked[:5]}
+            **{k: best[k] for k in ("format_score", "ocr_confidence", "selection_score", "raw_text", "literal_layout")},
+            "literal_evidence": list(literals.values()), "alternatives": ranked[:5]}
+    if conflicts:
+        result.update(review_reason="conflicting_literal_readings", conflicting_texts=conflicts)
+    elif ambiguous:
+        result["review_reason"] = "ambiguous_interpretations"
+    elif not accepted:
+        result["review_reason"] = "reading_requires_review"
+    return result
 
 
 def best_candidate(candidates):
@@ -134,7 +183,14 @@ def choose_reading(readings, ambiguity_margin=0.08):
     best = dict(ranked[0])
     competing = [r for r in ranked[1:] if r["proposed_text"] and r["proposed_text"] != best["proposed_text"]]
     if competing and best["selection_score"] - competing[0]["selection_score"] < ambiguity_margin:
-        best.update(plate_text="", status="uncertain")
+        best.update(plate_text="", status="uncertain", review_reason="conflicting_image_views")
+    evidence = [item for reading in readings for item in reading.get("literal_evidence", [])]
+    conflicts = conflicting_literals(best, evidence, ambiguity_margin=ambiguity_margin)
+    if conflicts:
+        best.update(plate_text="", status="uncertain", review_reason="conflicting_literal_readings",
+                    conflicting_texts=conflicts)
+    if evidence:
+        best["literal_evidence"] = evidence
     return best
 
 
