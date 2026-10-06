@@ -92,3 +92,35 @@ def merge_detections(detections, iou_threshold=0.5):
         if not any(box_iou(detection["box"], other["box"]) >= iou_threshold for other in kept):
             kept.append(detection)
     return kept
+
+
+def sharpen_unsharp_mask(img_bgr, sigma=1.0, strength=1.5):
+    """Amplify high-frequency edges by subtracting a Gaussian-blurred version.
+    
+    Counters motion and optical defocus blur on license plate character strokes.
+    """
+    import cv2
+    import numpy as np
+    if img_bgr is None or getattr(img_bgr, "size", 0) == 0:
+        return img_bgr
+    blurred = cv2.GaussianBlur(img_bgr, (0, 0), sigma)
+    sharpened = cv2.addWeighted(img_bgr, 1.0 + strength, blurred, -strength, 0)
+    return np.clip(sharpened, 0, 255).astype(np.uint8)
+
+
+def enhance_plate_strokes(img_bgr):
+    """Morphological Black-Hat filter to isolate dark character strokes on reflective plate surfaces.
+    
+    Helps separate smeared or low-contrast characters from plate background blur.
+    """
+    import cv2
+    import numpy as np
+    if img_bgr is None or getattr(img_bgr, "size", 0) == 0:
+        return img_bgr
+    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    blackhat = cv2.morphologyEx(gray, cv2.MORPH_BLACKHAT, kernel)
+    enhanced = cv2.subtract(gray, blackhat)
+    norm = cv2.normalize(enhanced, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+    return cv2.cvtColor(norm, cv2.COLOR_GRAY2BGR)
+

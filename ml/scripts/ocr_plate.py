@@ -22,6 +22,7 @@ import re
 import cv2
 import numpy as np
 from plate_validator import order_regions
+from image_ops import sharpen_unsharp_mask, enhance_plate_strokes
 
 _ocr = None  # lazy-loaded singleton
 

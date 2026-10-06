@@ -8,7 +8,7 @@ from pathlib import Path
 import cv2
 import torch
 from ultralytics import YOLO
-from image_ops import merge_detections, tiled_restore, padded_box
+from image_ops import merge_detections, tiled_restore, padded_box, sharpen_unsharp_mask, enhance_plate_strokes
 from model_artifacts import resolve_detector, export_is_current
 from predict_quality import load_model as load_quality_model, predict as predict_quality
 from unet_model import UNet
@@ -99,6 +99,12 @@ def read_crop(crop, source, use_upscale=True, profile="balanced"):
             lab = cv2.cvtColor(larger, cv2.COLOR_BGR2LAB)
             lab[:, :, 0] = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4, 4)).apply(lab[:, :, 0])
             read(cv2.cvtColor(lab, cv2.COLOR_LAB2BGR), "contrast")
+        if not strong_reading(choose_reading(readings)):
+            deblurred = sharpen_unsharp_mask(larger, sigma=1.0, strength=1.5)
+            read(deblurred, "deblur_sharpen")
+        if not strong_reading(choose_reading(readings)):
+            stroked = enhance_plate_strokes(larger)
+            read(stroked, "stroke_enhanced")
     selected = choose_reading(readings)
     if use_upscale and crop.shape[1] < UPSCALE_DUAL_WIDTH_PX and (profile == "exhaustive" or not strong_reading(selected)):
         try:
