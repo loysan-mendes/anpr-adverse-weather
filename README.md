@@ -15,7 +15,7 @@ From the project root, start the local app with the configured ML environment:
 # With a regular activated environment: python backend/server.py
 ```
 
-Open **http://127.0.0.1:8000**. Choose or drop a JPEG, PNG or WebP image (up to 12 MB and 12 megapixels), select Balanced or Thorough mode, then click **Analyze image**. The optional sample uses a locally installed project image. Click result cards to highlight plate boxes, expand reading evidence, or export the complete result as JSON. Uncertain readings are shown as proposals requiring review.
+Open **http://127.0.0.1:8000**. Choose or drop a JPEG, PNG or WebP image (up to 12 MB and 12 megapixels), select Standard Scan or Deep Scan mode, then click **Find & Read Plates**. The optional sample uses a locally installed project image. Click result cards to highlight plate boxes, expand reading evidence, or export the complete result as JSON. Uncertain readings are shown as proposals requiring review.
 
 The app reuses the current active detector and quality/restoration checkpoints. Super-resolution is disabled to match the verified pipeline and avoid downloading missing Real-ESRGAN weights. The first request loads models; later requests reuse them. Images are processed locally, normalized for EXIF orientation, and temporary upload files are removed after analysis. There is no persistent upload history. Keep the server terminal open; Ctrl+C stops it. Use `--port 8001` if port 8000 is occupied.
 
@@ -69,7 +69,7 @@ path and SHA-256; changed/missing registered weights fail instead of silently
 switching models. Without a registry, the pretrained nano model is used.
 The vehicle detector is cached independently of the trained plate detector.
 
-The app draws purple dashed vehicle boxes and lists every detected vehicle,
+The app draws high-contrast dashed vehicle boxes and lists every detected vehicle,
 including those without a readable plate. Each plate shows its matched vehicle
 type and detector confidence. JSON includes `vehicles`, `num_vehicles_detected`,
 and per-plate `vehicle_id`, `vehicle_type`, `vehicle_confidence`, and

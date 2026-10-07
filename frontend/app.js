@@ -27,7 +27,7 @@ function resetResults() {
   selectedVehicle = -1;
   $('results').hidden = true;
   $('empty').hidden = false;
-  $('result-count').textContent = 'Ready for Scene';
+  $('result-count').textContent = 'Ready for image';
   $('download').hidden = true;
   $('header-reset').hidden = !file;
 }
@@ -196,18 +196,18 @@ function render() {
 
   const plateCount = result.num_plates_detected || 0;
   const acceptedCount = result.num_plates_accepted || 0;
-  $('result-count').textContent = `${acceptedCount} of ${plateCount} Accepted`;
+  $('result-count').textContent = `${acceptedCount} of ${plateCount} Verified`;
 
   $('detected').textContent = plateCount;
   $('accepted').textContent = acceptedCount;
   $('duration').textContent = `${result.timings_seconds.total.toFixed(2)}s`;
 
-  // Atmospheric & Restoration Diagnostics Chips
+  // Weather Condition & Cleanup Diagnostics Chips
   const qualityEl = $('quality');
   qualityEl.replaceChildren();
 
   const condChip = makeElement('div', undefined, 'chip-diag');
-  condChip.innerHTML = `<span class="chip-diag-badge badge-condition">${result.quality.condition.toUpperCase()}</span> ${percent(result.quality.condition_confidence)} Confidence`;
+  condChip.innerHTML = `<span class="chip-diag-badge badge-condition">WEATHER</span> ${result.quality.condition.toUpperCase()} (${percent(result.quality.condition_confidence)})`;
   qualityEl.append(condChip);
 
   const sevChip = makeElement('div', undefined, 'chip-diag');
@@ -216,24 +216,24 @@ function render() {
 
   const restoreChip = makeElement('div', undefined, 'chip-diag');
   if (result.restoration_applied) {
-    restoreChip.innerHTML = `<span class="chip-diag-badge badge-restored">RESTORED</span> ${result.restoration_applied}`;
+    restoreChip.innerHTML = `<span class="chip-diag-badge badge-restored">CLEANUP</span> Enhanced (${result.restoration_applied})`;
   } else {
-    restoreChip.innerHTML = `<span class="chip-diag-badge badge-original">SENSOR PIXELS</span> Native Pass`;
+    restoreChip.innerHTML = `<span class="chip-diag-badge badge-original">CLEANUP</span> Clear (No cleanup needed)`;
   }
   qualityEl.append(restoreChip);
 
   const modeChip = makeElement('div', undefined, 'chip-diag');
-  modeChip.innerHTML = `<span class="chip-diag-badge badge-condition">PROFILE</span> ${result.profile.toUpperCase()}`;
+  modeChip.innerHTML = `<span class="chip-diag-badge badge-condition">MODE</span> ${result.profile === 'balanced' ? 'STANDARD SCAN' : 'DEEP SCAN'}`;
   qualityEl.append(modeChip);
 
-  // Full-Scene Vehicles Grid
+  // Detected Vehicles Grid
   const vehiclesEl = $('vehicles');
   vehiclesEl.replaceChildren();
   const vCount = result.vehicles?.length || 0;
   $('vehicle-count-badge').textContent = `${vCount} found`;
 
   if (!vCount) {
-    const noV = makeElement('div', 'No supported vehicles identified in this scene.', 'section-help');
+    const noV = makeElement('div', 'No vehicles detected in this photo.', 'section-help');
     vehiclesEl.append(noV);
   } else {
     result.vehicles.forEach(vehicle => {
@@ -247,7 +247,7 @@ function render() {
       const matchedPlate = (result.plates || []).find(p => p.vehicle_id === vehicle.id);
       const matchedText = matchedPlate 
         ? `Linked to Plate #${(result.plates.indexOf(matchedPlate) + 1)}` 
-        : 'No plate linked';
+        : 'No plate found on this vehicle';
 
       card.innerHTML = `
         <div class="vehicle-mini-top">
@@ -268,7 +268,7 @@ function render() {
   platesEl.replaceChildren();
 
   if (!result.plates || !result.plates.length) {
-    platesEl.append(makeElement('div', 'No license plates localized. Try thorough mode or a higher-resolution frame.', 'section-help'));
+    platesEl.append(makeElement('div', 'No license plates found. Try Deep Scan mode or upload a clearer photo.', 'section-help'));
   } else {
     result.plates.forEach((plate, index) => {
       const card = makeElement('article', undefined, 'plate-card');
@@ -288,7 +288,7 @@ function render() {
 
       const isAccepted = plate.status === 'accepted';
       const statusPillClass = isAccepted ? 'pill-accepted' : (plate.status === 'unreadable' ? 'pill-unreadable' : 'pill-review');
-      const statusPillText = isAccepted ? '● VERIFIED' : (plate.status === 'unreadable' ? '■ UNREADABLE' : '▲ REVIEW REQUIRED');
+      const statusPillText = isAccepted ? '● VERIFIED' : (plate.status === 'unreadable' ? '■ UNREADABLE' : '▲ NEEDS REVIEW');
       const displayText = plate.plate_text || plate.proposed_text || 'UNREADABLE';
 
       // Generate High-Res Plate Crop Thumbnail from source bitmap
@@ -309,8 +309,8 @@ function render() {
 
       const cropBlock = cropDataUrl ? `
         <div class="plate-crop-container">
-          <img src="${cropDataUrl}" class="plate-crop-thumb" alt="Sensor Crop">
-          <span class="plate-crop-label">SENSOR CROP</span>
+          <img src="${cropDataUrl}" class="plate-crop-thumb" alt="Plate Crop">
+          <span class="plate-crop-label">PLATE CROP</span>
         </div>
       ` : '';
 
@@ -341,20 +341,20 @@ function render() {
 
       const vehicleMatchLabel = plate.vehicle_match_status === 'matched'
         ? `<span class="vehicle-match-status match-success">Linked to Vehicle V${plate.vehicle_id} (${plate.vehicle_type} · ${percent(plate.vehicle_confidence)})</span>`
-        : `<span class="vehicle-match-status match-review">Vehicle association unverified (${(plate.vehicle_match_status || 'unmatched').replace('_', ' ')})</span>`;
+        : `<span class="vehicle-match-status match-review">No vehicle linked to this plate</span>`;
 
       const reviewNotice = plate.review_reason === 'low_final_ocr_confidence'
-        ? `<div class="alert-banner alert-error" style="margin: 0 0 8px 0; font-size: 11px;">⚠ Reading requires review: OCR confidence falls below the 0.90 safety acceptance threshold.</div>`
+        ? `<div class="alert-banner alert-error" style="margin: 0 0 8px 0; font-size: 11px;">⚠ Flagged for review: Character clarity is below 90% confidence to prevent errors.</div>`
         : '';
 
       const evidenceLines = (plate.readings || []).map(r => 
-        `• [${r.ocr_source} / ${r.ocr_variant || 'standard'}] → "${r.plate_text || r.proposed_text || 'unreadable'}" (OCR: ${percent(r.ocr_confidence)}, Status: ${r.status})`
+        `• [${r.ocr_source} / ${r.ocr_variant || 'standard'}] → "${r.plate_text || r.proposed_text || 'unreadable'}" (Accuracy: ${percent(r.ocr_confidence)})`
       ).join('\n');
 
       card.innerHTML = `
         <div class="plate-card-body" style="padding-top: 12px;">
           <div class="plate-status-row">
-            <span class="plate-seq-badge">DETECTION #0${index + 1}</span>
+            <span class="plate-seq-badge">PLATE #0${index + 1}</span>
             <span class="plate-pill-status ${statusPillClass}">${statusPillText}</span>
           </div>
         </div>
@@ -363,17 +363,17 @@ function render() {
           ${reviewNotice}
           <div class="plate-gauges-grid">
             <div class="gauge-item">
-              <span class="gauge-label">OCR CONFIDENCE</span>
+              <span class="gauge-label">READ ACCURACY</span>
               <span class="gauge-val">${percent(ocrScore)}</span>
               <div class="gauge-bar"><div class="gauge-fill fill-ocr" style="width: ${Math.round(ocrScore * 100)}%"></div></div>
             </div>
             <div class="gauge-item">
-              <span class="gauge-label">DETECTOR</span>
+              <span class="gauge-label">PLATE DETECT</span>
               <span class="gauge-val">${percent(detScore)}</span>
               <div class="gauge-bar"><div class="gauge-fill fill-detect" style="width: ${Math.round(detScore * 100)}%"></div></div>
             </div>
             <div class="gauge-item">
-              <span class="gauge-label">RTO FORMAT</span>
+              <span class="gauge-label">INDIAN FORMAT</span>
               <span class="gauge-val">${percent(fmtScore)}</span>
               <div class="gauge-bar"><div class="gauge-fill fill-format" style="width: ${Math.round(fmtScore * 100)}%"></div></div>
             </div>
@@ -382,8 +382,8 @@ function render() {
             ${vehicleMatchLabel}
           </div>
           <details class="plate-evidence-drawer">
-            <summary>Optical Evidence & Variants (${(plate.readings || []).length})</summary>
-            <div class="evidence-content">${evidenceLines || 'No secondary variants generated.'}</div>
+            <summary>Character Read Details (${(plate.readings || []).length} passes)</summary>
+            <div class="evidence-content">${evidenceLines || 'Single-pass read.'}</div>
           </details>
         </div>
       `;
@@ -409,7 +409,7 @@ $('analyze').onclick = async () => {
     if (el) el.disabled = true;
   });
 
-  $('result-count').textContent = 'Analyzing…';
+  $('result-count').textContent = 'Scanning…';
   const start = Date.now();
   $('elapsed').textContent = '0.0s elapsed';
   const timer = setInterval(() => {
@@ -552,7 +552,7 @@ function resetVideoWorkspace() {
   $('video-results').hidden = true;
   $('video-download-btn').hidden = true;
   $('video-result-count').textContent = 'Awaiting Video';
-  $('video-overlay-badge').textContent = 'Source Video Preview';
+  $('video-overlay-badge').textContent = 'Video Preview';
   videoError('');
 }
 
@@ -584,7 +584,7 @@ async function setVideoSource(fileOrDemo, isDemo = false) {
   $('video-empty').hidden = false;
   $('video-results').hidden = true;
   $('video-result-count').textContent = 'Ready to Track';
-  $('video-overlay-badge').textContent = isDemo ? 'DEMO PASSAGE CLIP' : 'UPLOADED CLIP';
+  $('video-overlay-badge').textContent = isDemo ? 'DEMO GATE VIDEO' : 'UPLOADED VIDEO';
   player.load();
 }
 
@@ -672,7 +672,7 @@ $('video-analyze-btn').onclick = async () => {
 function renderVideoResults(data) {
   $('video-results').hidden = false;
   $('video-download-btn').hidden = false;
-  $('video-result-count').textContent = `${data.num_accepted_plates || 0} Accepted Plates`;
+  $('video-result-count').textContent = `${data.num_accepted_plates || 0} Confirmed Plates`;
 
   // Update telemetry dashboard
   $('metric-video-vehicles').textContent = data.num_vehicles_tracked ?? data.passages?.length ?? 0;
@@ -680,14 +680,14 @@ function renderVideoResults(data) {
   const frames = data.video_metadata?.processed_frames ?? 0;
   $('metric-video-frames').textContent = frames;
   const fps = (frames / (data.processing_time_seconds || 1)).toFixed(1);
-  $('metric-video-fps').textContent = `${fps} FPS processing speed`;
+  $('metric-video-fps').textContent = `${fps} FPS`;
   $('metric-video-time').textContent = `${(data.processing_time_seconds || 0).toFixed(2)}s`;
 
   // Switch video player to annotated video feed if available
   if (data.video_stream_url) {
     const player = $('video-display-element');
     player.src = data.video_stream_url;
-    $('video-overlay-badge').textContent = '🎯 ANNOTATED BYTETRACK FEED';
+    $('video-overlay-badge').textContent = '🎯 TRACKED VIDEO PLAYBACK';
     player.load();
     player.play().catch(() => {});
   }
@@ -698,7 +698,7 @@ function renderVideoResults(data) {
   $('video-passages-badge').textContent = `${data.passages?.length || 0} events`;
 
   if (!data.passages || data.passages.length === 0) {
-    listEl.innerHTML = '<div class="state-empty" style="padding:24px"><p>No vehicle passages detected in this clip.</p></div>';
+    listEl.innerHTML = '<div class="state-empty" style="padding:24px"><p>No vehicles detected in this video clip.</p></div>';
     return;
   }
 
@@ -709,18 +709,18 @@ function renderVideoResults(data) {
 
     const isAccepted = p.status === 'accepted';
     const statusClass = isAccepted ? 'badge-accepted' : 'badge-review';
-    const statusLabel = isAccepted ? 'ACCEPTED' : (p.status || 'REVIEW').toUpperCase();
+    const statusLabel = isAccepted ? 'VERIFIED' : 'NEEDS REVIEW';
     const confPercent = Math.round((p.fused_confidence || 0) * 100);
 
     let alternativesHtml = '';
     if (p.alternatives && p.alternatives.length > 1) {
       alternativesHtml = `
         <div class="passage-alternatives">
-          <strong style="color:var(--text-muted); font-size:0.75rem;">Multi-Frame Candidate Breakdown:</strong>
+          <strong style="color:var(--text-muted); font-size:0.75rem;">Candidate Reads Across Frames:</strong>
           ${p.alternatives.map(a => `
             <div class="alternative-item">
               <span style="font-weight:600;">${a.text}</span>
-              <span>${a.frame_count} frames · vote weight ${a.votes.toFixed(2)}</span>
+              <span>Read in ${a.frame_count} frames (${Math.round((a.votes / Math.max(1, p.total_plate_frames)) * 100)}% clarity)</span>
             </div>
           `).join('')}
         </div>
@@ -729,24 +729,24 @@ function renderVideoResults(data) {
 
     card.innerHTML = `
       <div class="passage-card-top">
-        <span class="passage-track-badge">#${p.track_id} · ${(p.vehicle_type || 'VEHICLE').toUpperCase()}</span>
-        <span class="passage-time-range">⏱ ${p.first_seen_sec}s ➔ ${p.last_seen_sec}s (${p.total_plate_frames} frames)</span>
+        <span class="passage-track-badge">Vehicle #${p.track_id} · ${(p.vehicle_type || 'CAR').toUpperCase()}</span>
+        <span class="passage-time-range">⏱ ${p.first_seen_sec}s to ${p.last_seen_sec}s (${p.total_plate_frames} frames)</span>
       </div>
 
       <div class="passage-body">
         <div class="passage-plate-display">
           <span class="passage-plate-text">${p.plate_text || p.proposed_text || '—'}</span>
           <div class="passage-meta-line">
-            <span class="passage-agreement-tag">🎯 ${p.agreement_count || 1} unanimous frame votes</span>
-            <span>Confidence: ${confPercent}%</span>
-            <span>HSRP Format: ${(p.format_score || 0).toFixed(1)}</span>
+            <span class="passage-agreement-tag">✓ Confirmed in ${p.agreement_count || 1} frames</span>
+            <span>Accuracy: ${confPercent}%</span>
+            <span>Indian Format: ${p.format_score >= 0.8 ? 'Valid' : 'Partial'}</span>
           </div>
         </div>
 
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
           <span class="badge-status ${statusClass}">${statusLabel}</span>
           <button class="btn-seek-passage" type="button" data-time="${p.first_seen_sec}">
-            <span>▶ Seek (${p.first_seen_sec}s)</span>
+            <span>▶ Jump to ${p.first_seen_sec}s</span>
           </button>
         </div>
       </div>
