@@ -451,7 +451,7 @@ $('download').onclick = () => {
   const jsonStr = JSON.stringify({ filename: file?.name, ...result }, null, 2);
   const blob = new Blob([jsonStr], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const link = makeElement('a');
+  const link = document.createElement('a');
   link.href = url;
   link.download = `clearplate-${Date.now()}.json`;
   link.click();
@@ -496,3 +496,288 @@ const loadSample = async () => {
 
 $('sample').onclick = loadSample;
 $('header-sample').onclick = loadSample;
+
+/* ==========================================================================
+   Multi-Frame Video Tracking & Mode Switcher
+   ========================================================================== */
+
+let currentMode = 'image';
+let videoFile = null;
+let isDemoVideo = false;
+let videoResult = null;
+let videoBusy = false;
+
+function switchMode(mode) {
+  currentMode = mode;
+  const imgTab = $('tab-mode-image');
+  const vidTab = $('tab-mode-video');
+  const imgWorkspace = $('workspace-image');
+  const vidWorkspace = $('workspace-video');
+
+  if (mode === 'image') {
+    imgTab.classList.add('active');
+    vidTab.classList.remove('active');
+    imgWorkspace.hidden = false;
+    vidWorkspace.hidden = true;
+  } else {
+    vidTab.classList.add('active');
+    imgTab.classList.remove('active');
+    imgWorkspace.hidden = true;
+    vidWorkspace.hidden = false;
+  }
+}
+
+$('tab-mode-image').onclick = () => switchMode('image');
+$('tab-mode-video').onclick = () => switchMode('video');
+
+function videoError(msg) {
+  const el = $('video-error');
+  el.textContent = msg;
+  el.hidden = !msg;
+}
+
+function resetVideoWorkspace() {
+  videoFile = null;
+  isDemoVideo = false;
+  videoResult = null;
+  const player = $('video-display-element');
+  player.pause();
+  player.removeAttribute('src');
+  player.load();
+
+  $('video-drop-zone').hidden = false;
+  $('video-stage-container').hidden = true;
+  $('video-file-info').hidden = true;
+  $('video-change').hidden = true;
+  $('video-analyze-btn').disabled = true;
+  $('video-empty').hidden = false;
+  $('video-loading').hidden = true;
+  $('video-results').hidden = true;
+  $('video-download-btn').hidden = true;
+  $('video-result-count').textContent = 'Awaiting Video';
+  $('video-overlay-badge').textContent = 'Source Video Preview';
+  videoError('');
+}
+
+$('video-change').onclick = resetVideoWorkspace;
+
+async function setVideoSource(fileOrDemo, isDemo = false) {
+  videoError('');
+  isDemoVideo = isDemo;
+  const player = $('video-display-element');
+
+  if (isDemo) {
+    videoFile = null;
+    player.src = '/api/sample-video';
+    $('video-file-name').textContent = 'demo_vehicle_passage.mp4';
+    $('video-telemetry-badge').textContent = 'DEMO · 33 Frames';
+  } else {
+    videoFile = fileOrDemo;
+    player.src = URL.createObjectURL(videoFile);
+    $('video-file-name').textContent = videoFile.name;
+    const mb = (videoFile.size / (1024 * 1024)).toFixed(1);
+    $('video-telemetry-badge').textContent = `${mb} MB`;
+  }
+
+  $('video-drop-zone').hidden = true;
+  $('video-stage-container').hidden = false;
+  $('video-file-info').hidden = false;
+  $('video-change').hidden = false;
+  $('video-analyze-btn').disabled = false;
+  $('video-empty').hidden = false;
+  $('video-results').hidden = true;
+  $('video-result-count').textContent = 'Ready to Track';
+  $('video-overlay-badge').textContent = isDemo ? 'DEMO PASSAGE CLIP' : 'UPLOADED CLIP';
+  player.load();
+}
+
+$('video-browse-btn').onclick = () => $('video-file-input').click();
+$('video-file-input').onchange = e => {
+  const f = e.target.files?.[0];
+  if (f) setVideoSource(f, false);
+};
+
+const vDrop = $('video-drop-zone');
+['dragenter', 'dragover'].forEach(name => {
+  vDrop.addEventListener(name, e => {
+    e.preventDefault();
+    vDrop.classList.add('drag-over');
+  });
+});
+['dragleave', 'drop'].forEach(name => {
+  vDrop.addEventListener(name, e => {
+    e.preventDefault();
+    vDrop.classList.remove('drag-over');
+  });
+});
+vDrop.ondrop = e => {
+  const f = e.dataTransfer?.files?.[0];
+  if (f && (f.type.startsWith('video/') || f.name.match(/\.(mp4|webm|mov)$/i))) {
+    setVideoSource(f, false);
+  } else {
+    videoError('Please drop an MP4, WebM, or MOV video file.');
+  }
+};
+
+$('video-demo-btn').onclick = () => setVideoSource(null, true);
+
+// Video Analysis Runner
+$('video-analyze-btn').onclick = async () => {
+  if (videoBusy) return;
+  videoBusy = true;
+  videoError('');
+  $('video-analyze-btn').disabled = true;
+  $('video-empty').hidden = true;
+  $('video-results').hidden = true;
+  $('video-loading').hidden = false;
+
+  const timerEl = $('video-elapsed');
+  const start = performance.now();
+  const timer = setInterval(() => {
+    timerEl.textContent = `${((performance.now() - start) / 1000).toFixed(1)}s elapsed`;
+  }, 100);
+
+  try {
+    const stride = $('video-stride').value || '1';
+    let url = `/api/analyze-video?stride=${stride}`;
+    let body = null;
+    let headers = {};
+
+    if (isDemoVideo) {
+      url += '&demo=1';
+      body = '';
+    } else {
+      if (!videoFile) throw new Error('No video selected.');
+      body = await videoFile.arrayBuffer();
+      headers['Content-Type'] = 'video/mp4';
+    }
+
+    const response = await fetch(url, { method: 'POST', body, headers });
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || `Server responded with ${response.status}`);
+    }
+
+    const data = await response.json();
+    videoResult = data;
+    renderVideoResults(data);
+  } catch (err) {
+    videoError(err.message);
+    $('video-empty').hidden = false;
+  } finally {
+    clearInterval(timer);
+    videoBusy = false;
+    $('video-loading').hidden = true;
+    $('video-analyze-btn').disabled = false;
+  }
+};
+
+function renderVideoResults(data) {
+  $('video-results').hidden = false;
+  $('video-download-btn').hidden = false;
+  $('video-result-count').textContent = `${data.num_accepted_plates || 0} Accepted Plates`;
+
+  // Update telemetry dashboard
+  $('metric-video-vehicles').textContent = data.num_vehicles_tracked ?? data.passages?.length ?? 0;
+  $('metric-video-accepted').textContent = data.num_accepted_plates ?? 0;
+  const frames = data.video_metadata?.processed_frames ?? 0;
+  $('metric-video-frames').textContent = frames;
+  const fps = (frames / (data.processing_time_seconds || 1)).toFixed(1);
+  $('metric-video-fps').textContent = `${fps} FPS processing speed`;
+  $('metric-video-time').textContent = `${(data.processing_time_seconds || 0).toFixed(2)}s`;
+
+  // Switch video player to annotated video feed if available
+  if (data.video_stream_url) {
+    const player = $('video-display-element');
+    player.src = data.video_stream_url;
+    $('video-overlay-badge').textContent = '🎯 ANNOTATED BYTETRACK FEED';
+    player.load();
+    player.play().catch(() => {});
+  }
+
+  // Render passages list
+  const listEl = $('video-passages-list');
+  listEl.innerHTML = '';
+  $('video-passages-badge').textContent = `${data.passages?.length || 0} events`;
+
+  if (!data.passages || data.passages.length === 0) {
+    listEl.innerHTML = '<div class="state-empty" style="padding:24px"><p>No vehicle passages detected in this clip.</p></div>';
+    return;
+  }
+
+  data.passages.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'passage-card';
+    card.id = `passage-card-${p.track_id}`;
+
+    const isAccepted = p.status === 'accepted';
+    const statusClass = isAccepted ? 'badge-accepted' : 'badge-review';
+    const statusLabel = isAccepted ? 'ACCEPTED' : (p.status || 'REVIEW').toUpperCase();
+    const confPercent = Math.round((p.fused_confidence || 0) * 100);
+
+    let alternativesHtml = '';
+    if (p.alternatives && p.alternatives.length > 1) {
+      alternativesHtml = `
+        <div class="passage-alternatives">
+          <strong style="color:var(--text-muted); font-size:0.75rem;">Multi-Frame Candidate Breakdown:</strong>
+          ${p.alternatives.map(a => `
+            <div class="alternative-item">
+              <span style="font-weight:600;">${a.text}</span>
+              <span>${a.frame_count} frames · vote weight ${a.votes.toFixed(2)}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    card.innerHTML = `
+      <div class="passage-card-top">
+        <span class="passage-track-badge">#${p.track_id} · ${(p.vehicle_type || 'VEHICLE').toUpperCase()}</span>
+        <span class="passage-time-range">⏱ ${p.first_seen_sec}s ➔ ${p.last_seen_sec}s (${p.total_plate_frames} frames)</span>
+      </div>
+
+      <div class="passage-body">
+        <div class="passage-plate-display">
+          <span class="passage-plate-text">${p.plate_text || p.proposed_text || '—'}</span>
+          <div class="passage-meta-line">
+            <span class="passage-agreement-tag">🎯 ${p.agreement_count || 1} unanimous frame votes</span>
+            <span>Confidence: ${confPercent}%</span>
+            <span>HSRP Format: ${(p.format_score || 0).toFixed(1)}</span>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+          <span class="badge-status ${statusClass}">${statusLabel}</span>
+          <button class="btn-seek-passage" type="button" data-time="${p.first_seen_sec}">
+            <span>▶ Seek (${p.first_seen_sec}s)</span>
+          </button>
+        </div>
+      </div>
+      ${alternativesHtml}
+    `;
+
+    card.querySelector('.btn-seek-passage').onclick = e => {
+      e.stopPropagation();
+      const time = parseFloat(e.currentTarget.getAttribute('data-time') || 0);
+      const player = $('video-display-element');
+      player.currentTime = time;
+      player.play().catch(() => {});
+      document.querySelectorAll('.passage-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+    };
+
+    listEl.appendChild(card);
+  });
+}
+
+$('video-download-btn').onclick = () => {
+  if (!videoResult) return;
+  const jsonStr = JSON.stringify(videoResult, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `passage-events-${Date.now()}.json`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};

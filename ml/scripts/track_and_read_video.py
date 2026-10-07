@@ -18,6 +18,25 @@ from temporal_fusion import estimate_sharpness, fuse_observations
 from vehicle_detector import load_vehicle_model, VEHICLE_CLASSES
 
 
+def create_video_writer(path: Path, fps: float, width: int, height: int) -> cv2.VideoWriter:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Prefer MSMF H264 on Windows for direct HTML5 browser video playback
+    try:
+        writer = cv2.VideoWriter(str(path), cv2.CAP_MSMF, cv2.VideoWriter_fourcc(*"H264"), fps, (width, height))
+        if writer.isOpened():
+            return writer
+    except Exception:
+        pass
+    try:
+        writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"avc1"), fps, (width, height))
+        if writer.isOpened():
+            return writer
+    except Exception:
+        pass
+    return cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
+
+
 class VideoANPRTracker:
     def __init__(
         self,
@@ -59,10 +78,7 @@ class VideoANPRTracker:
 
         writer = None
         if out_video:
-            out_video = Path(out_video)
-            out_video.parent.mkdir(parents=True, exist_ok=True)
-            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-            writer = cv2.VideoWriter(str(out_video), fourcc, fps / self.frame_stride, (width, height))
+            writer = create_video_writer(Path(out_video), fps / self.frame_stride, width, height)
 
         # Track state store: track_id -> vehicle metadata & plate observation candidates
         tracks: Dict[int, Dict] = {}

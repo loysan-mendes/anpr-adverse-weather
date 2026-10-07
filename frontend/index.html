@@ -42,6 +42,27 @@
     </div>
   </header>
 
+  <!-- Processing Mode Navigation Switcher -->
+  <nav class="mode-navigation-bar" aria-label="Processing Mode Selection">
+    <div class="mode-nav-tabs">
+      <button id="tab-mode-image" class="mode-tab-btn active" data-mode="image" type="button">
+        <span class="tab-icon">📷</span>
+        <div class="tab-text-group">
+          <span class="tab-title">Single Photo Studio</span>
+          <span class="tab-subtitle">Adverse-Weather Restoration</span>
+        </div>
+      </button>
+      <button id="tab-mode-video" class="mode-tab-btn" data-mode="video" type="button">
+        <span class="tab-icon">🎥</span>
+        <div class="tab-text-group">
+          <span class="tab-title">Video Gate Tracking</span>
+          <span class="tab-subtitle">ByteTrack & Temporal Consensus</span>
+        </div>
+        <span class="tab-pill-live">LIVE</span>
+      </button>
+    </div>
+  </nav>
+
   <!-- Workspace Subheader Banner -->
   <div class="sub-header">
     <div class="sub-header-content">
@@ -58,8 +79,9 @@
     </div>
   </div>
 
-  <!-- Main Studio Workspace Grid -->
-  <main class="studio-workspace">
+  <main class="app-main-container">
+    <!-- IMAGE WORKSPACE -->
+    <div id="workspace-image" class="studio-workspace">
     
     <!-- LEFT PANEL: Viewport & Input Station -->
     <section class="panel panel-viewport" aria-labelledby="viewport-title">
@@ -301,8 +323,224 @@
         </div>
       </div>
     </section>
+  </div> <!-- /#workspace-image -->
 
-  </main>
+  <!-- MULTI-FRAME VIDEO WORKSPACE -->
+  <div id="workspace-video" class="studio-workspace" hidden>
+    <!-- LEFT PANEL: Video Viewport & Playback -->
+    <section class="panel panel-viewport" aria-labelledby="video-viewport-title">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <span class="panel-step">01</span>
+          <h2 id="video-viewport-title" class="panel-title">Video Stream Viewport</h2>
+        </div>
+        <div class="panel-actions">
+          <div id="video-file-info" class="file-telemetry" hidden>
+            <span id="video-file-name" class="telemetry-name"></span>
+            <span id="video-telemetry-badge" class="telemetry-badge"></span>
+          </div>
+          <button id="video-change" class="btn-subtle" type="button" hidden>
+            <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12"><path d="M12.854 4.854a.5.5 0 00-.708-.708L8 8.293 3.854 4.146a.5.5 0 10-.708.708l4.5 4.5a.5.5 0 00.708 0l4.5-4.5z"/><path d="M2 13.5a.5.5 0 01.5-.5h11a.5.5 0 010 1h-11a.5.5 0 01-.5-.5z"/></svg>
+            Change Video
+          </button>
+        </div>
+      </div>
+
+      <div class="viewport-stage">
+        <!-- Interactive Drop Zone for Video -->
+        <div id="video-drop-zone" class="drop-zone">
+          <div class="radar-scanner" aria-hidden="true">
+            <div class="radar-sweep"></div>
+            <div class="radar-circle circle-1"></div>
+            <div class="radar-circle circle-2"></div>
+            <div class="radar-center-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+              </svg>
+            </div>
+          </div>
+          
+          <h3 class="drop-title">Drop gate recording or traffic camera feed</h3>
+          <p class="drop-desc">Multi-object vehicle ByteTrack with Laplacian sharpness sampling and temporal plate consensus</p>
+          
+          <div class="drop-action-group">
+            <button id="video-browse-btn" class="btn-primary-upload" type="button">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+              <span>Browse Video Files</span>
+            </button>
+            <button id="video-demo-btn" class="btn-secondary-sample" type="button">
+              <span>🎬 Try Demo Passage (33 Frames)</span>
+            </button>
+          </div>
+          <span class="file-restrictions">MP4, WebM, MOV · GPU/ByteTrack Vehicle Tracking & Multiframe Fusion</span>
+        </div>
+
+        <input id="video-file-input" type="file" accept="video/mp4,video/webm,video/quicktime" hidden>
+
+        <!-- Interactive Video Player Container -->
+        <div id="video-stage-container" class="canvas-container video-stage-box" hidden>
+          <div class="canvas-hud-corner corner-tl"></div>
+          <div class="canvas-hud-corner corner-tr"></div>
+          <div class="canvas-hud-corner corner-bl"></div>
+          <div class="canvas-hud-corner corner-br"></div>
+          <video id="video-display-element" controls playsinline loop class="active-video-player"></video>
+          <div class="video-overlay-status" id="video-overlay-badge">Source Video Preview</div>
+        </div>
+      </div>
+
+      <!-- Video Viewport Controls -->
+      <div class="viewport-controls">
+        <div class="control-group">
+          <label for="video-stride" class="control-label">
+            <span>Tracking Frame Stride</span>
+            <span class="mode-info-icon" title="Stride 1 evaluates every frame for maximum accuracy. Stride 2 processes alternate frames for 2x faster throughput.">ⓘ</span>
+          </label>
+          <div class="select-wrapper">
+            <select id="video-stride">
+              <option value="1">⚡ Stride 1 (Full Precision · Continuous Tracking)</option>
+              <option value="2">🚀 Stride 2 (Accelerated · 2× Speed)</option>
+            </select>
+          </div>
+        </div>
+
+        <button id="video-analyze-btn" class="btn-execute" type="button" disabled>
+          <span class="btn-icon">⚡</span>
+          <span class="btn-label">Track & Read Video</span>
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        </button>
+      </div>
+
+      <div id="video-error" class="alert-banner alert-error" role="alert" hidden></div>
+    </section>
+
+    <!-- RIGHT PANEL: Passage Intelligence & Telemetry -->
+    <section class="panel panel-intelligence" aria-labelledby="video-intel-title">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <span class="panel-step">02</span>
+          <h2 id="video-intel-title" class="panel-title">Passage Events & Telemetry</h2>
+        </div>
+        <div class="panel-actions">
+          <span id="video-result-count" class="badge-status">Awaiting Video</span>
+          <button id="video-download-btn" class="btn-subtle" title="Export passage JSON" type="button" hidden>
+            <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            Export JSON
+          </button>
+        </div>
+      </div>
+
+      <div class="intelligence-content">
+        <!-- Empty State -->
+        <div id="video-empty" class="state-empty">
+          <div class="empty-illustration">
+            <div class="scan-grid"></div>
+            <div class="target-bracket">
+              <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M12 28V14a2 2 0 012-2h14M52 12h14a2 2 0 012 2v14M68 52v14a2 2 0 01-2 2H52M28 68H14a2 2 0 01-2-2V52"/>
+                <rect x="22" y="28" width="36" height="24" rx="4" stroke-dasharray="3 3"/>
+                <polygon points="44 40 36 35 36 45" fill="currentColor"/>
+              </svg>
+            </div>
+          </div>
+          <h3 class="state-title">Awaiting Video Stream</h3>
+          <p class="state-desc">Upload a gate recording to track vehicle trajectory across frames, sample sharpest plate crops, and reach temporal consensus.</p>
+          
+          <div class="pipeline-flow-cards">
+            <div class="flow-step">
+              <span class="flow-num">1</span>
+              <div class="flow-info">
+                <strong>ByteTrack Association</strong>
+                <span>Tracks vehicles across frames</span>
+              </div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <span class="flow-num">2</span>
+              <div class="flow-info">
+                <strong>Laplacian Sharpness</strong>
+                <span>Picks best unblurred crops</span>
+              </div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <span class="flow-num">3</span>
+              <div class="flow-info">
+                <strong>Temporal Consensus</strong>
+                <span>Position-wise character consensus</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="video-loading" class="state-loading" role="status" hidden>
+          <div class="scanner-spinner">
+            <div class="spin-ring ring-outer"></div>
+            <div class="spin-ring ring-middle"></div>
+            <div class="spin-ring ring-inner"></div>
+            <div class="spin-core">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+            </div>
+          </div>
+          <h3 class="loading-title">Tracking Vehicle Passages…</h3>
+          <p class="loading-subtitle">Processing ByteTrack associations, ranking crop sharpness, and fusing character consensus.</p>
+          <div class="loading-progress-pill">
+            <span class="pulse-indicator"></span>
+            <span id="video-elapsed" class="elapsed-counter">0.0s elapsed</span>
+          </div>
+        </div>
+
+        <!-- Telemetry & Results Container -->
+        <div id="video-results" class="results-container" aria-live="polite" hidden>
+          <div class="metrics-dashboard">
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label">VEHICLES TRACKED</span>
+                <span class="metric-icon">🚗</span>
+              </div>
+              <span id="metric-video-vehicles" class="metric-value">0</span>
+              <span id="metric-video-vehicles-sub" class="metric-footer">Active passage IDs</span>
+            </div>
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label">ACCEPTED PLATES</span>
+                <span class="metric-icon">✅</span>
+              </div>
+              <span id="metric-video-accepted" class="metric-value status-accepted-text">0</span>
+              <span id="metric-video-accepted-sub" class="metric-footer">High temporal consensus</span>
+            </div>
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label">FRAMES PROCESSED</span>
+                <span class="metric-icon">🎞️</span>
+              </div>
+              <span id="metric-video-frames" class="metric-value">0</span>
+              <span id="metric-video-fps" class="metric-footer">0 FPS processing speed</span>
+            </div>
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label">INFERENCE TIME</span>
+                <span class="metric-icon">⏱️</span>
+              </div>
+              <span id="metric-video-time" class="metric-value">0.0s</span>
+              <span class="metric-footer">Total end-to-end time</span>
+            </div>
+          </div>
+
+          <!-- Passages List -->
+          <div class="plates-section-header">
+            <h3 class="section-title">Tracked Vehicle Passage Logs</h3>
+            <span id="video-passages-badge" class="badge-count">0 events</span>
+          </div>
+          <div id="video-passages-list" class="plates-list"></div>
+        </div>
+      </div>
+    </section>
+  </div> <!-- /#workspace-video -->
+</main>
 
   <!-- Modern Clean Footer -->
   <footer class="app-footer">

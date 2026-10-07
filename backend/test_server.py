@@ -1,10 +1,14 @@
 import http.client
 import io
 import json
+from pathlib import Path
+import sys
 import threading
 import unittest
 from unittest.mock import patch
 from PIL import Image
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from server import Handler, ThreadingHTTPServer, INFERENCE_LOCK, prepare_image
 
 
@@ -65,6 +69,23 @@ class WebTests(unittest.TestCase):
         buffer = io.BytesIO()
         image.save(buffer, format='JPEG', exif=exif)
         self.assertEqual(prepare_image(buffer.getvalue()).size, (10, 20))
+
+    def test_sample_video_endpoint(self):
+        status, body = self.request('/api/sample-video')
+        self.assertEqual(status, 200)
+        self.assertGreater(len(body), 1000)
+
+    def test_video_analysis_and_stream(self):
+        mock_res = {
+            'passages': [{'track_id': 1, 'plate_text': 'MH01DB1477', 'status': 'accepted'}],
+            'video_stream_url': '/api/video-stream/testvid123',
+        }
+        with patch('server.infer_video', return_value=mock_res) as infer_v:
+            status, body = self.request('/api/analyze-video?demo=1', b'')
+            self.assertEqual(status, 200)
+            data = json.loads(body)
+            self.assertEqual(data['passages'][0]['plate_text'], 'MH01DB1477')
+            self.assertTrue(infer_v.called)
 
 
 if __name__ == '__main__':

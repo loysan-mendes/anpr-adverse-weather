@@ -9,13 +9,16 @@ import sys
 import tempfile
 import threading
 from urllib.parse import parse_qs, urlsplit
+import uuid
 import warnings
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'ml/scripts'))
 MAX_BYTES = 12 * 1024 * 1024
+MAX_VIDEO_BYTES = 50 * 1024 * 1024
 MAX_PIXELS = 12_000_000
 INFERENCE_LOCK = threading.Lock()
+VIDEO_RESULTS_DIR = tempfile.mkdtemp(prefix='anpr-videos-')
 STATIC = {'/': ('index.html', 'text/html'), '/app.js': ('app.js', 'text/javascript'),
           '/style.css': ('style.css', 'text/css')}
 
@@ -50,6 +53,30 @@ def infer(image, profile):
     return result
 
 
+def infer_video(video_bytes, frame_stride=1, is_demo=False):
+    from track_and_read_video import VideoANPRTracker
+    video_id = uuid.uuid4().hex[:12]
+    out_video_path = Path(VIDEO_RESULTS_DIR) / f'annotated_{video_id}.mp4'
+    out_json_path = Path(VIDEO_RESULTS_DIR) / f'passages_{video_id}.json'
+
+    if is_demo:
+        in_video_path = ROOT / 'demo_vehicle_passage.mp4'
+        if not in_video_path.is_file():
+            raise FileNotFoundError('Demo video not found on server.')
+    else:
+        in_video_path = Path(VIDEO_RESULTS_DIR) / f'input_{video_id}.mp4'
+        in_video_path.write_bytes(video_bytes)
+
+    tracker = VideoANPRTracker(frame_stride=frame_stride)
+    result = tracker.process_video(
+        video_path=in_video_path,
+        out_json=out_json_path,
+        out_video=out_video_path,
+    )
+    result['video_stream_url'] = f'/api/video-stream/{video_id}'
+    return result
+
+
 class Handler(BaseHTTPRequestHandler):
     def valid_host(self):
         port = self.server.server_port
@@ -69,7 +96,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Content-Length', str(len(body)))
         self.send_header('Cache-Control', 'no-store')
         self.send_header('X-Content-Type-Options', 'nosniff')
-        self.send_header('Content-Security-Policy', "default-src 'self'; img-src 'self' blob: data:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'")
+        self.send_header('Content-Security-Policy', "default-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'")
         self.send_header('Connection', 'close')
         self.end_headers()
         self.wfile.write(body)
@@ -85,6 +112,19 @@ class Handler(BaseHTTPRequestHandler):
             if sample.is_file():
                 return self.reply(200, sample.read_bytes(), 'image/jpeg')
             return self.reply(404, {'error': 'The sample image is not installed. Choose your own image.'})
+        if path == '/api/sample-video':
+            sample_video = ROOT / 'demo_vehicle_passage.mp4'
+            if sample_video.is_file():
+                return self.reply(200, sample_video.read_bytes(), 'video/mp4')
+            return self.reply(404, {'error': 'The demo video file is not present.'})
+        if path.startswith('/api/video-stream/'):
+            video_id = path[len('/api/video-stream/'):]
+            if not video_id.isalnum() or len(video_id) > 32:
+                return self.reply(400, {'error': 'Invalid video ID.'})
+            stream_file = Path(VIDEO_RESULTS_DIR) / f'annotated_{video_id}.mp4'
+            if stream_file.is_file():
+                return self.reply(200, stream_file.read_bytes(), 'video/mp4')
+            return self.reply(404, {'error': 'Video stream expired or not found.'})
         if path in STATIC:
             name, mime = STATIC[path]
             return self.reply(200, (ROOT / 'frontend' / name).read_bytes(), mime)
@@ -94,7 +134,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self.valid_host():
             return
         target = urlsplit(self.path)
-        if target.path != '/api/analyze':
+        if target.path not in {'/api/analyze', '/api/analyze-video'}:
             return self.reply(404, {'error': 'Not found.'})
         # Accept browser uploads only from this app; never expose credentialed CORS.
         origin = self.headers.get('Origin')
@@ -106,6 +146,41 @@ class Handler(BaseHTTPRequestHandler):
             length = int(self.headers.get('Content-Length', '0'))
         except ValueError:
             length = 0
+
+        # Route 1: Multi-frame Video Analysis
+        if target.path == '/api/analyze-video':
+            is_demo = parse_qs(target.query).get('demo', ['0'])[0] in {'1', 'true'}
+            try:
+                stride = int(parse_qs(target.query).get('stride', ['1'])[0])
+            except ValueError:
+                stride = 1
+            stride = max(1, min(5, stride))
+
+            if is_demo and length == 0:
+                payload = b''
+            else:
+                if not 0 < length <= MAX_VIDEO_BYTES:
+                    return self.reply(413, {'error': 'Upload a video between 1 byte and 50 MB.'})
+                try:
+                    payload = self.rfile.read(length)
+                except (TimeoutError, OSError):
+                    return self.reply(408, {'error': 'Upload timed out. Please try again.'})
+                if len(payload) != length:
+                    return self.reply(400, {'error': 'Upload was interrupted. Please try again.'})
+
+            if not INFERENCE_LOCK.acquire(blocking=False):
+                return self.reply(409, {'error': 'The model is processing another task. Please try again shortly.'})
+            try:
+                result = infer_video(payload, frame_stride=stride, is_demo=is_demo)
+                self.reply(200, result)
+            except Exception as exc:
+                logging.exception('Video analysis failed')
+                self.reply(500, {'error': f'Video processing error: {str(exc)}'})
+            finally:
+                INFERENCE_LOCK.release()
+            return
+
+        # Route 2: Single Image Analysis
         if not 0 < length <= MAX_BYTES:
             return self.reply(413, {'error': 'Upload an image between 1 byte and 12 MB.'})
         profile = parse_qs(target.query).get('profile', ['balanced'])[0]
