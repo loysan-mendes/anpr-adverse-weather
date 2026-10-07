@@ -130,3 +130,5 @@ new-indian-vehicle-dataset/
 ml/data/indian_plates/
 ml/data/vehicle_sample*/
 ml/models/vehicle_runs/
+output/
+*.mp4

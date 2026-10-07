@@ -127,7 +127,7 @@ class VideoANPRTracker:
                             }
                         else:
                             tracks[track_id]["last_seen_frame"] = frame_idx
-                            tracks[track_id]["last_seen_sec"] = round(timestamp_sec, 2),
+                            tracks[track_id]["last_seen_sec"] = round(timestamp_sec, 2)
                             tracks[track_id]["confs"].append(conf)
 
                 # 2. Plate detection

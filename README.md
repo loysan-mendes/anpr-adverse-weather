@@ -113,6 +113,36 @@ Each detected plate includes:
 
 Strong competing readings cause abstention. Ambiguous substitutions such as `0 -> O/Q/D` remain alternatives. No-series plate formats receive a conservative review-only score because dropped letters can create false matches. This deliberately reduces automatic coverage. Format support is limited to the templates in `plate_validator.py`; this is not a registration-database lookup. Default acceptance thresholds need calibration on validation data, with the test set left untouched.
 
+## Multi-Frame Video Tracking & Passage Analysis
+
+For gate monitoring and entrance cameras, the pipeline supports multi-frame video tracking using Ultralytics ByteTrack, sharpness-weighted OCR selection, and temporal consensus voting.
+
+### 1. Assembling or preparing a video clip
+
+To generate a letterboxed demo MP4 clip from the dataset image sequence:
+```powershell
+.\run_ml.ps1 ml/scripts/create_demo_video.py `
+    --prefix video11 `
+    --min-idx 980 `
+    --max-idx 1380 `
+    --out demo_vehicle_passage.mp4
+```
+
+### 2. Processing video with ByteTrack & Temporal Consensus
+
+Run tracking and multi-frame plate recognition on any video file (e.g. `demo_vehicle_passage.mp4` or a camera recording):
+```powershell
+.\run_ml.ps1 ml/scripts/track_and_read_video.py `
+    --video demo_vehicle_passage.mp4 `
+    --out-json output/passage_events.json `
+    --out-video output/annotated_feed.mp4 `
+    --frame-stride 1
+```
+
+This exports:
+- `output/passage_events.json`: Structured passage logs per tracked vehicle (`track_id`, `vehicle_type`, timestamps, fused plate number, confidence, status, and candidate alternatives).
+- `output/annotated_feed.mp4`: Rendered video feed with real-time ByteTrack vehicle boxes and detected license plate coordinates.
+
 ## Prepare data and train
 
 ### Newly supplied Indian plate dataset
