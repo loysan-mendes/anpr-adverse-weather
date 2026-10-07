@@ -8,6 +8,13 @@ let file = null, bitmap = null, result = null, selectedPlate = -1, selectedVehic
 
 const percent = val => Number.isFinite(val) ? `${Math.round(val * 100)}%` : '—';
 
+function makeElement(tag, text, className) {
+  const el = document.createElement(tag);
+  if (text !== undefined) el.textContent = text;
+  if (className) el.className = className;
+  return el;
+}
+
 function error(message) {
   const el = $('error');
   el.textContent = message;
@@ -51,7 +58,7 @@ function draw() {
   const showVehicles = $('toggle-vehicles')?.checked ?? true;
   const showPlates = $('toggle-plates')?.checked ?? true;
 
-  // 1. Draw Vehicle Bounding Boxes (Purple)
+  // 1. Draw Vehicle Bounding Boxes (Monochrome Crisp White Dashed)
   if (showVehicles && result?.vehicles) {
     result.vehicles.forEach(vehicle => {
       const isSelected = selectedVehicle === vehicle.id || (selectedPlate >= 0 && result.plates[selectedPlate]?.vehicle_id === vehicle.id);
@@ -59,27 +66,27 @@ function draw() {
       const w = x2 - x1, h = y2 - y1;
 
       ctx.save();
-      ctx.strokeStyle = isSelected ? '#d946ef' : '#8b5cf6';
-      ctx.lineWidth = isSelected ? 4 : 2;
-      ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = isSelected ? '#ffffff' : 'rgba(255, 255, 255, 0.45)';
+      ctx.lineWidth = isSelected ? 3 : 1.5;
+      ctx.setLineDash([4, 4]);
       ctx.strokeRect(x1, y1, w, h);
       ctx.setLineDash([]);
 
       // Vehicle Tag Header
       const label = `V${vehicle.id} ${vehicle.vehicle_type.toUpperCase()} ${percent(vehicle.confidence)}`;
-      ctx.font = 'bold 12px Consolas, monospace';
+      ctx.font = '600 11px "JetBrains Mono", Consolas, monospace';
       const textWidth = ctx.measureText(label).width;
-      const tagY = Math.max(18, y1);
+      const tagY = Math.max(16, y1);
 
-      ctx.fillStyle = isSelected ? '#a21caf' : 'rgba(30, 27, 75, 0.9)';
-      ctx.fillRect(x1, tagY - 18, textWidth + 12, 18);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(label, x1 + 6, tagY - 4);
+      ctx.fillStyle = isSelected ? '#ffffff' : 'rgba(0, 0, 0, 0.85)';
+      ctx.fillRect(x1, tagY - 16, textWidth + 10, 16);
+      ctx.fillStyle = isSelected ? '#000000' : '#ffffff';
+      ctx.fillText(label, x1 + 5, tagY - 4);
       ctx.restore();
     });
   }
 
-  // 2. Draw License Plate Bounding Boxes (Neon Green / Amber)
+  // 2. Draw License Plate Bounding Boxes (Crisp Solid White)
   if (showPlates && result?.plates) {
     result.plates.forEach((plate, index) => {
       const isSelected = index === selectedPlate;
@@ -87,28 +94,18 @@ function draw() {
       const w = x2 - x1, h = y2 - y1;
 
       ctx.save();
-      const isAccepted = plate.status === 'accepted';
-      const mainColor = isAccepted ? '#10b981' : '#f59e0b';
-
-      // Subtle shadow/glow for selected plate
-      if (isSelected) {
-        ctx.shadowColor = mainColor;
-        ctx.shadowBlur = 12;
-      }
-
-      ctx.strokeStyle = mainColor;
-      ctx.lineWidth = isSelected ? 4 : 2;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = isSelected ? 3 : 2;
       ctx.strokeRect(x1, y1, w, h);
 
       // Plate Index Badge
-      ctx.shadowBlur = 0;
       const badgeText = `${index + 1}`;
-      ctx.font = 'bold 12px Consolas, monospace';
-      const tagY = Math.max(18, y1);
+      ctx.font = '700 11px "JetBrains Mono", Consolas, monospace';
+      const tagY = Math.max(16, y1);
 
-      ctx.fillStyle = mainColor;
-      ctx.fillRect(x1, tagY - 18, 22, 18);
-      ctx.fillStyle = '#090d16';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x1, tagY - 16, 20, 16);
+      ctx.fillStyle = '#000000';
       ctx.fillText(badgeText, x1 + 6, tagY - 4);
       ctx.restore();
     });

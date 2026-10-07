@@ -3,7 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Clearplate · Adverse-Weather ANPR AI</title>
+  <title>Clearplate · Autonomous ANPR Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
   <script src="/app.js" defer></script>
 </head>
@@ -46,14 +49,25 @@
   <nav class="mode-navigation-bar" aria-label="Processing Mode Selection">
     <div class="mode-nav-tabs">
       <button id="tab-mode-image" class="mode-tab-btn active" data-mode="image" type="button">
-        <span class="tab-icon">📷</span>
+        <span class="tab-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <rect x="3" y="3" width="18" height="18" rx="3"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+        </span>
         <div class="tab-text-group">
           <span class="tab-title">Single Photo Studio</span>
           <span class="tab-subtitle">Adverse-Weather Restoration</span>
         </div>
       </button>
       <button id="tab-mode-video" class="mode-tab-btn" data-mode="video" type="button">
-        <span class="tab-icon">🎥</span>
+        <span class="tab-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <polygon points="23 7 16 12 23 17 23 7"/>
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+          </svg>
+        </span>
         <div class="tab-text-group">
           <span class="tab-title">Video Gate Tracking</span>
           <span class="tab-subtitle">ByteTrack & Temporal Consensus</span>
@@ -67,10 +81,10 @@
   <div class="sub-header">
     <div class="sub-header-content">
       <div class="pipeline-tags">
-        <span class="pill-tag"><span class="tag-icon">⚡</span> RTX Local Acceleration</span>
-        <span class="pill-tag"><span class="tag-icon">🌧</span> Selective Native Tiling</span>
-        <span class="pill-tag"><span class="tag-icon">🚗</span> Vehicle Association</span>
-        <span class="pill-tag"><span class="tag-icon">🛡</span> Conservative 0.90 Safety Gate</span>
+        <span class="pill-tag"><span class="tag-icon">●</span> RTX Acceleration</span>
+        <span class="pill-tag"><span class="tag-icon">●</span> Native-Resolution Tiling</span>
+        <span class="pill-tag"><span class="tag-icon">●</span> ByteTrack Vehicle Multi-Object</span>
+        <span class="pill-tag"><span class="tag-icon">●</span> Conservative 0.90 Gate</span>
       </div>
       <div class="privacy-note">
         <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12"><path fill-rule="evenodd" d="M8 1a3.5 3.5 0 00-3.5 3.5V6H3a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2V8a2 2 0 00-2-2h-1.5V4.5A3.5 3.5 0 008 1zm2 5V4.5a2 2 0 10-4 0V6h4z" clip-rule="evenodd"/></svg>
@@ -165,14 +179,13 @@
           </label>
           <div class="select-wrapper">
             <select id="profile">
-              <option value="balanced">⚡ Balanced (Fast · Native pixel priority)</option>
-              <option value="exhaustive">🔬 Exhaustive (Deep · Multi-view restored fusion)</option>
+              <option value="balanced">Balanced (Fast · Native Priority)</option>
+              <option value="exhaustive">Exhaustive (Deep · Multi-Pass Fusion)</option>
             </select>
           </div>
         </div>
 
         <button id="analyze" class="btn-execute" disabled>
-          <span class="btn-icon">⚡</span>
           <span class="btn-label">Analyze Scene</span>
           <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
         </button>
@@ -218,22 +231,22 @@
               <span class="flow-num">1</span>
               <div class="flow-info">
                 <strong>Quality Analysis</strong>
-                <span>Detects rain, haze & blur</span>
+                <span>Atmospheric classification</span>
               </div>
             </div>
             <div class="flow-arrow">→</div>
             <div class="flow-step">
               <span class="flow-num">2</span>
               <div class="flow-info">
-                <strong>Vehicle & Plate Detection</strong>
-                <span>YOLO11n + plate localization</span>
+                <strong>Vehicle & Plate</strong>
+                <span>YOLO localization</span>
               </div>
             </div>
             <div class="flow-arrow">→</div>
             <div class="flow-step">
               <span class="flow-num">3</span>
               <div class="flow-info">
-                <strong>Safety-Gated OCR</strong>
+                <strong>Gated OCR</strong>
                 <span>HSRP format validation</span>
               </div>
             </div>
@@ -269,28 +282,25 @@
             <div class="metric-card">
               <div class="metric-header">
                 <span class="metric-label">PLATES DETECTED</span>
-                <span class="metric-icon">🎯</span>
               </div>
               <strong id="detected" class="metric-value">—</strong>
-              <span class="metric-sub">YOLOv8 Plate BBoxes</span>
+              <span class="metric-footer">Localized candidate boxes</span>
             </div>
 
-            <div class="metric-card metric-accepted">
+            <div class="metric-card">
               <div class="metric-header">
                 <span class="metric-label">VERIFIED & ACCEPTED</span>
-                <span class="metric-icon">🛡</span>
               </div>
-              <strong id="accepted" class="metric-value metric-highlight">—</strong>
-              <span class="metric-sub">Confidence ≥ 0.90 Gate</span>
+              <strong id="accepted" class="metric-value status-accepted-text">—</strong>
+              <span class="metric-footer">Confidence ≥ 0.90 gate</span>
             </div>
 
             <div class="metric-card">
               <div class="metric-header">
                 <span class="metric-label">LATENCY</span>
-                <span class="metric-icon">⚡</span>
               </div>
               <strong id="duration" class="metric-value">—</strong>
-              <span class="metric-sub">End-to-End Pipeline</span>
+              <span class="metric-footer">End-to-end pipeline</span>
             </div>
           </div>
 
@@ -370,7 +380,7 @@
               <span>Browse Video Files</span>
             </button>
             <button id="video-demo-btn" class="btn-secondary-sample" type="button">
-              <span>🎬 Try Demo Passage (33 Frames)</span>
+              <span>Try Demo Passage (33 Frames)</span>
             </button>
           </div>
           <span class="file-restrictions">MP4, WebM, MOV · GPU/ByteTrack Vehicle Tracking & Multiframe Fusion</span>
@@ -398,14 +408,13 @@
           </label>
           <div class="select-wrapper">
             <select id="video-stride">
-              <option value="1">⚡ Stride 1 (Full Precision · Continuous Tracking)</option>
-              <option value="2">🚀 Stride 2 (Accelerated · 2× Speed)</option>
+              <option value="1">Stride 1 (Exhaustive · All Frames)</option>
+              <option value="2">Stride 2 (Fast · Alternate Frames)</option>
             </select>
           </div>
         </div>
 
         <button id="video-analyze-btn" class="btn-execute" type="button" disabled>
-          <span class="btn-icon">⚡</span>
           <span class="btn-label">Track & Read Video</span>
           <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
         </button>
@@ -499,7 +508,6 @@
             <div class="metric-card">
               <div class="metric-header">
                 <span class="metric-label">VEHICLES TRACKED</span>
-                <span class="metric-icon">🚗</span>
               </div>
               <span id="metric-video-vehicles" class="metric-value">0</span>
               <span id="metric-video-vehicles-sub" class="metric-footer">Active passage IDs</span>
@@ -507,7 +515,6 @@
             <div class="metric-card">
               <div class="metric-header">
                 <span class="metric-label">ACCEPTED PLATES</span>
-                <span class="metric-icon">✅</span>
               </div>
               <span id="metric-video-accepted" class="metric-value status-accepted-text">0</span>
               <span id="metric-video-accepted-sub" class="metric-footer">High temporal consensus</span>
@@ -515,7 +522,6 @@
             <div class="metric-card">
               <div class="metric-header">
                 <span class="metric-label">FRAMES PROCESSED</span>
-                <span class="metric-icon">🎞️</span>
               </div>
               <span id="metric-video-frames" class="metric-value">0</span>
               <span id="metric-video-fps" class="metric-footer">0 FPS processing speed</span>
@@ -523,7 +529,6 @@
             <div class="metric-card">
               <div class="metric-header">
                 <span class="metric-label">INFERENCE TIME</span>
-                <span class="metric-icon">⏱️</span>
               </div>
               <span id="metric-video-time" class="metric-value">0.0s</span>
               <span class="metric-footer">Total end-to-end time</span>
